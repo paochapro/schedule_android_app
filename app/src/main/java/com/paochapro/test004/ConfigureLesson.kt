@@ -1,8 +1,14 @@
 package com.paochapro.test004
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -21,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.beust.klaxon.Klaxon
 import java.io.File
+import kotlin.math.floor
 
 @Composable
 fun ConfigureLesson(activity: MainActivity) {
@@ -51,9 +58,8 @@ fun ConfigureLesson(activity: MainActivity) {
         }
     }
 
-    val top = listOf("", "Предмет", "Время", "Кабинет")
 
-    val texts = remember {
+    val rowDataArray = remember {
         List(LESSON_COUNT)  {
             val result: SnapshotStateList<String>
 
@@ -67,24 +73,73 @@ fun ConfigureLesson(activity: MainActivity) {
         }
     }
 
-    //TODO: Replace grid with lazyColumn/rows to get rid of scrolling
-    //Lessons
-    Column {
-    LazyVerticalGrid (columns = GridCells.Fixed(4), modifier = Modifier.height(700.dp))
-    {
-        items(top) {
-            Text(it)
+
+    val top = arrayOf("", "Предмет", "Время", "Кабинет")
+    val weights = arrayOf(0.2f, 1.0f, 0.5f, 0.4f)
+
+//    @Composable
+//    fun Boxed(weight: Modifier, content: @Composable () -> Unit) {
+//        Box(modifier = weight.fillMaxWidth()) {
+//            content()
+//        }
+//    }
+//
+//    Column {
+//        //Column names
+//        Row {
+//            Boxed(Modifier.weight(weights[0])) {}
+//            Boxed(Modifier.weight(weights[1])) { Text("Предмет") }
+//            Boxed(Modifier.weight(weights[2])) { Text("Время") }
+//            Boxed(Modifier.weight(weights[3])) { Text("Кабинет") }
+//        }
+//
+//        for(y in 0 until LESSON_COUNT) {
+//            Row {
+//                //Lesson name
+//                Boxed(Modifier.weight(weights[0])) {
+//                    Text("${y+1}")
+//                }
+//
+//
+//                //TextFields
+//                for(x in 0..2) {
+//                    Box(modifier = Modifier.fillMaxWidth().weight(weights[x+1])) {
+//                        val rowData = rowDataArray[y]
+//                        TextField(rowData[x], {rowData[x]=it})
+//                    }
+//                }
+//            }
+//        }
+//    }
+
+    @Composable
+    fun SetupItem(row: Int, column: Int) {
+        //Column names
+        if(row == 0) {
+            Text(top[column])
+            return
         }
 
-        //Huge performance drop!
-        for (n in 0..<LESSON_COUNT) {
-            val row = texts[n]
-            item { Text("${n + 1}") }
-            item { TextField(row[0], { row[0] = it }) }
-            item { TextField(row[1], { row[1] = it }) }
-            item { TextField(row[2], { row[2] = it }) }
+        //Lesson number
+        if(column == 0) {
+            Text("$row")
+            return
         }
-    } }
+
+        //TextFields
+        val rowData = rowDataArray[row-1]
+        TextField(rowData[column-1], {rowData[column-1]=it})
+    }
+
+    NonlazyGrid(
+        columns = 4,
+        itemCount = 9*4,
+        columnWeights = weights
+    ) {
+        val column = it % 4
+        val row = floor(it.toFloat() / 4f).toInt()
+        SetupItem(row, column)
+    }
 
     //TODO: check array oob
     Button({
@@ -92,7 +147,7 @@ fun ConfigureLesson(activity: MainActivity) {
 
         //Saving
         for(n in 0..< LESSON_COUNT) {
-            val row = texts.getOrElse(n) { listOf("","","") }
+            val row = rowDataArray.getOrElse(n) { listOf("","","") }
 
             if(row[0] == "" || row[1] == "" || row[2] == "")
                 continue
