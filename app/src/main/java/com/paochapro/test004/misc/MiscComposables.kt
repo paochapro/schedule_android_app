@@ -109,15 +109,16 @@ fun FileIoContent(activity: MainActivity) {
 }
 
 fun onButtonPress() {
-    val lesson1 = Lesson("8:00", "Test", 106)
-    val lesson2 = Lesson("9:00", "Test", 215)
-    val lesson3 = Lesson("10:00", "Test",215)
-    val lesson4 = Lesson("11:00", "Test", 215)
-    val lessons = arrayOf<Lesson?>(lesson1, lesson2, lesson3, lesson4)
-
-    val currentTime = utilStringToCalendar("10:00")
-    val currentLesson = getCurrentLesson(lessons, currentTime)
-
-    if(currentLesson != null)
-        Log.d(MSG, "End: ${getLessonEndString(currentLesson)} ")
+//Deprecated
+//    val lesson1 = Lesson("8:00", "Test", 106)
+//    val lesson2 = Lesson("9:00", "Test", 215)
+//    val lesson3 = Lesson("10:00", "Test",215)
+//    val lesson4 = Lesson("11:00", "Test", 215)
+//    val lessons = arrayOf<Lesson?>(lesson1, lesson2, lesson3, lesson4)
+//
+//    val currentTime = utilStringToCalendar("10:00")
+//    val currentLesson = getCurrentLesson(lessons, currentTime)
+//
+//    if(currentLesson != null)
+//        Log.d(MSG, "End: ${getLessonEndString(currentLesson)} ")
 }

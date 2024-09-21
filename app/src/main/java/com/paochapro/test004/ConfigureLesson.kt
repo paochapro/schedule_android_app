@@ -1,20 +1,7 @@
 package com.paochapro.test004
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -23,56 +10,39 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.beust.klaxon.Klaxon
-import java.io.File
 import kotlin.math.floor
+
+//TODO: Sometimes saving to schedule doesn't work!
+
+fun getTextFieldDataArray(dayIndex: Int, activity: MainActivity): List<SnapshotStateList<String>> {
+    val day = activity.schedule.getOrNull(dayIndex)
+
+    if(day == null) {
+        return List(LESSON_COUNT) { mutableStateListOf("", "", "") }
+    }
+    else {
+        return List(LESSON_COUNT) {
+            val lesson = day.getOrNull(it)
+            if(lesson != null)
+                mutableStateListOf(lesson.subject, lesson.startTime, "${lesson.cabinet}")
+            else
+                mutableStateListOf("", "", "")
+        }
+    }
+}
 
 @Composable
 fun ConfigureLesson(activity: MainActivity) {
-    val expanded = remember { mutableStateOf(false) }
-    val day = remember { mutableStateOf("Понедельник") }
+    val configureDay = remember { mutableStateOf(Day.Monday) }
+    val configureDayIndex = configureDay.value.ordinal
 
     //Day
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text("День: ")
-        Column  {
-            Button({expanded.value = true}) {
-                Text(day.value)
-            }
-            DropdownMenu(expanded = expanded.value, onDismissRequest = {expanded.value = false}) {
-                DropdownMenuItem(text = { Text("Понедельник") }, onClick = {
-                    expanded.value = false
-                    day.value = "Понедельник"
-                })
-                DropdownMenuItem(text = { Text("Вторник") }, onClick = {
-                    expanded.value = false
-                    day.value = "Вторник"
-                })
-                DropdownMenuItem(text = { Text("Среда") }, onClick = {
-                    expanded.value = false
-                    day.value  = "Среда"
-                })
-            }
-        }
+        DayPicker(configureDay.value) { configureDay.value = it }
     }
 
-
-    val rowDataArray = remember {
-        List(LESSON_COUNT)  {
-            val result: SnapshotStateList<String>
-
-            val lesson = activity.lessons.getOrNull(it)
-            result = if(lesson != null)
-                mutableStateListOf(lesson.subject, lesson.startTime, "${lesson.cabinet}")
-            else
-                mutableStateListOf("", "", "")
-
-            result
-        }
-    }
-
+    val rowDataArray = getTextFieldDataArray(configureDayIndex, activity)
 
     val top = arrayOf("", "Предмет", "Время", "Кабинет")
     val weights = arrayOf(0.2f, 1.0f, 0.5f, 0.4f)
@@ -115,25 +85,25 @@ fun ConfigureLesson(activity: MainActivity) {
     @Composable
     fun SetupItem(row: Int, column: Int) {
         //Column names
-        if(row == 0) {
+        if (row == 0) {
             Text(top[column])
             return
         }
 
         //Lesson number
-        if(column == 0) {
+        if (column == 0) {
             Text("$row")
             return
         }
 
         //TextFields
-        val rowData = rowDataArray[row-1]
-        TextField(rowData[column-1], {rowData[column-1]=it})
+        val rowData = rowDataArray[row - 1]
+        TextField(rowData[column - 1], { rowData[column - 1] = it })
     }
 
     NonlazyGrid(
         columns = 4,
-        itemCount = 9*4,
+        itemCount = 9 * 4,
         columnWeights = weights
     ) {
         val column = it % 4
@@ -142,39 +112,30 @@ fun ConfigureLesson(activity: MainActivity) {
     }
 
     //TODO: check array oob
-    Button({
-        val writeLessons = mutableListOf<Lesson>()
+    fun getButtonSave(): () -> Unit = {
+        val day = activity.schedule[configureDayIndex]
 
-        //Saving
-        for(n in 0..< LESSON_COUNT) {
-            val row = rowDataArray.getOrElse(n) { listOf("","","") }
+        if(day == null)
+            activity.schedule[configureDayIndex] = arrayOfNulls<Lesson?>(LESSON_COUNT)
 
-            if(row[0] == "" || row[1] == "" || row[2] == "")
-                continue
+        if(day != null){
+            //Saving
+            for(n in 0..< LESSON_COUNT) {
+                val row = rowDataArray.getOrElse(n) { listOf("","","") }
 
-            val lesson = Lesson(row[1], row[0], row[2].toInt())
+                if(row[0] == "" || row[1] == "" || row[2] == "") {
+                    day[n] = null
+                    continue
+                }
 
-            writeLessons.add(lesson)
-            activity.lessons[n] = lesson
+                day[n] = Lesson(row[1], row[0], row[2].toInt())
+            }
         }
 
-        //Save to file
-        val file = File(activity.filesDir, "test2.json")
+        activity.saveSchedule()
+    }
 
-        var success = true
-        if(!file.exists())
-            success = file.createNewFile()
-
-        if(success) {
-            val json = Klaxon().toJsonString(writeLessons.toTypedArray())
-            file.writeText(json)
-        }
-        else
-            println("Couldn't save the file. Failed to create the new one")
-
-        println(file.readText())
-
-    }) {
+    Button(onClick = getButtonSave()) {
         Text("Save")
     }
 }

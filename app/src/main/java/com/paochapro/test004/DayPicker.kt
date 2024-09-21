@@ -1,0 +1,29 @@
+package com.paochapro.test004
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+
+@Composable
+fun DayPicker(value: Day, onDayPick: (Day) -> Unit)
+{
+    val expanded = remember { mutableStateOf(false) }
+    Column {
+        Button({ expanded.value = true }) {
+            Text(value.rusTranslation)
+        }
+        DropdownMenu(expanded = expanded.value, onDismissRequest = { expanded.value = false }) {
+            for (day in Day.entries) {
+                DropdownMenuItem(text = { Text(day.rusTranslation) }, onClick = {
+                    expanded.value = false
+                    onDayPick(day)
+                })
+            }
+        }
+    }
+}

@@ -4,69 +4,203 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import com.paochapro.test004.ui.theme.Test004Theme
-import java.util.Calendar
-import java.util.GregorianCalendar
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import com.beust.klaxon.Klaxon
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.paochapro.test004.ui.theme.Test004Theme
 import java.io.File
+import java.util.Random
 
 val fullWidth = Modifier.fillMaxWidth()
 const val MSG = "MY_MESSAGE"
 const val LESSON_COUNT = 8
+const val DAY_COUNT = 7
 
 enum class Screen {
     UpdateLesson,
     ConfigureLesson
 }
 
-class Schedule(var num: Int)
+enum class Day(val rusTranslation: String) {
+    Monday("Понедельник"),
+    Tuesday("Вторник"),
+    Wednesday("Среда"),
+    Thursday("Четверг"),
+    Friday("Пятница"),
+    Saturday("Суббота"),
+    Sunday("Воскресенье");
+
+    companion object {
+        fun fromInt(int: Int) {
+            when(int) {
+                0 -> Day.Monday
+                1 -> Day.Tuesday
+                2 -> Day.Wednesday
+                3 -> Day.Thursday
+                4 -> Day.Friday
+                5 -> Day.Saturday
+                6 -> Day.Sunday
+                else -> {
+                    println("Integer $int isnt matching any day. Returning Day.Monday")
+                    Day.Monday
+                }
+            }
+        }
+    }
+}
+
+class Lesson(val startTime: String, val subject: String, val cabinet: Int)
 
 class MainActivity : ComponentActivity() {
-    var schedule = Schedule(5)
-    var lessons: Array<Lesson?> = arrayOfNulls(LESSON_COUNT)
+    data class FileLesson(val lesson: Lesson?)
+    data class FileDay(val lessons: Array<FileLesson>?)
+
+    val SCHEDULE_FILE_NAME = "test2.json"
+    var schedule: Array<Array<Lesson?>?> = arrayOfNulls(DAY_COUNT)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        readSchedule()
+        printSchedule()
+
+        setContent { UpdateScreens(this) }
+    }
+
+    private fun readSchedule(): Boolean {
         //Read the file
-        val file = File(this.filesDir, "test2.json")
+        val file = File(this.filesDir, SCHEDULE_FILE_NAME)
+
+        if(!file.exists()) {
+            println("No file to read")
+            schedule = arrayOfNulls(DAY_COUNT)
+            return false
+        }
+
         val json = file.readText()
 
         try {
-            val readData = Klaxon().parseArray<Lesson>(json)
-            println(json)
+            val read = Klaxon().parseArray<FileDay>(json)//Quite slow!
+            println("Read: $json")
 
-            if(readData != null) {
-                val count = if(readData.size > LESSON_COUNT) LESSON_COUNT else readData.size
+            if(read == null) {
+                println("Failed reading the schedule, it is probably empty. No exception was thrown")
+                return false
+            }
 
-                for (n in 0..<count) {
-                    lessons[n] = readData[n]
+            //Start copying with nulls
+            schedule = arrayOfNulls(DAY_COUNT)
+
+            for(d in 0 until DAY_COUNT) {
+                val readFileDay = read.getOrNull(d)
+
+                if(readFileDay == null) {
+                    println("File contains out of bounds day! Skipping")
+                    continue
                 }
+
+                if(readFileDay.lessons == null) {
+                    schedule[d] = null
+                    continue
+                }
+
+                val resultDay: Array<Lesson?> = arrayOfNulls(LESSON_COUNT)
+
+                for(l in 0 until LESSON_COUNT) {
+                    val readFileLesson = readFileDay.lessons.getOrNull(l)
+
+                    if(readFileLesson == null) {
+                        println("File contains out of bounds lesson! Skipping")
+                        continue
+                    }
+
+                    resultDay[l] = readFileLesson.lesson
+                }
+
+                schedule[d] = resultDay
             }
         }
-        catch (ex: Exception) {
-            println(ex.message)
+        catch(ex: Exception) {
+            println("Failed reading the schedule. Exception: " + ex.message)
         }
 
-        setContent { UpdateScreens(this) }
+        return true
+    }
+
+    fun saveSchedule() {
+        //val nonNullableSchedule = schedule.filterNotNull().map { it.filterNotNull() }.map { FileDay(it) }
+        val fileSchedule = schedule.map {
+            FileDay( it?.map { FileLesson(it) }?.toTypedArray() )
+        }
+
+        val json = Klaxon().toJsonString(fileSchedule)
+        val file = File(this.filesDir, SCHEDULE_FILE_NAME)
+
+        if(!file.exists()) {
+            if (!file.createNewFile()) {
+                println("Failed to create the schedule file when trying to save")
+                return
+            }
+        }
+
+        file.writeText(json)
+        println("Saved: $json")
+    }
+
+    private fun createTemplateSchedule(addEighthLesson: Boolean, addSunday: Boolean) {
+        val subjects = arrayOf("Рус", "Инф", "Алгб", "Физ", "Био")
+
+        schedule = arrayOfNulls(DAY_COUNT)
+
+        fun addDay(dayIndex: Int) {
+            val day = arrayOfNulls<Lesson?>(LESSON_COUNT)
+
+            for(l in 0 until LESSON_COUNT - 2) {
+                val subjectIndex = Random().nextInt(subjects.size)
+                val cab = (Random().nextInt(3) + 1) * 100 + (Random().nextInt(10) + 1 + 10)
+                day[l] = Lesson("${l+8}:00", subjects[subjectIndex], cab)
+            }
+
+            if(addEighthLesson) {
+                val subjectIndex = Random().nextInt(subjects.size)
+                val cab = (Random().nextInt(3) + 1) * 100 + (Random().nextInt(10) + 1 + 10)
+                day[7] = Lesson("15:00", subjects[subjectIndex], cab)
+            }
+
+            schedule[dayIndex] = day
+        }
+
+        for(dayIndex in 0 until DAY_COUNT - 2) {
+            addDay(dayIndex)
+        }
+
+        if(addSunday)
+            addDay(6)
+    }
+
+    private fun printSchedule() {
+        println("[Schedule]")
+        schedule.forEachIndexed { di, d ->
+            if(d != null) {
+                println("-- Day $di --")
+
+                d.forEachIndexed { li, l ->
+                    if (l != null)
+                        println("Lesson $li: ${l.subject} / ${l.startTime} / ${l.cabinet} ")
+                    else
+                        println("Lesson NULL")
+                }
+            }
+            else
+                println("-- Day NULL--")
+        }
     }
 }
 
@@ -80,7 +214,7 @@ fun UpdateScreens(activity: MainActivity) {
                 Button({ screen.value = Screen.ConfigureLesson }) {
                     Text("Configure lesson")
                 }
-                UpdateLesson(activity)
+                LessonStatus(activity)
             }
             Screen.ConfigureLesson -> {
                 Button({ screen.value = Screen.UpdateLesson }) {
@@ -91,117 +225,3 @@ fun UpdateScreens(activity: MainActivity) {
         }
     } }
 }
-
-@Composable
-fun UpdateLesson(activity: MainActivity) {
-    val usingCustomTime = remember { mutableStateOf(false) }
-    val customTime = remember { mutableStateOf(GregorianCalendar()) }
-    val timeString = remember { mutableStateOf("") }
-    val text = remember { mutableStateOf("") }
-    val currentLesson = remember { mutableStateOf<Lesson?>(null) }
-
-    TextField(text.value, {text.value = it})
-
-    fun onButtonPress() {
-        usingCustomTime.value = (text.value != "")
-
-        if(usingCustomTime.value) {
-            customTime.value = utilStringToCalendar(text.value)
-            timeString.value = text.value
-        }
-        else
-            timeString.value = ""
-    }
-
-    //Set current time
-    val setCurrentTime = remember { mutableStateOf(false) }
-
-    Row {
-        Button(onClick = ::onButtonPress) { Text("Update time") }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(setCurrentTime.value, {setCurrentTime.value = it})
-            Text("Текущее время", modifier = Modifier.clickable {setCurrentTime.value = !setCurrentTime.value})
-        }
-    }
-
-    if(usingCustomTime.value and !setCurrentTime.value) {
-        val coroutineScope = rememberCoroutineScope()
-
-        LaunchedEffect(Unit) {
-            println("Launched effect! Custom time")
-
-            coroutineScope.launch {
-                while(true) {
-                    timeString.value = utilCalendarToString(customTime.value)
-                    currentLesson.value = getCurrentLesson(activity.lessons, customTime.value)
-                    delay(1000)
-                    customTime.value.add(Calendar.MINUTE,1)
-                }
-            }
-        }
-    }
-
-    if(setCurrentTime.value) {
-        val coroutineScope = rememberCoroutineScope()
-
-        LaunchedEffect(Unit) {
-            println("Launched effect! Current time")
-
-            coroutineScope.launch {
-                while(true) {
-                    val today = GregorianCalendar()
-                    val time = GregorianCalendar(0, 0, 0, today.get(Calendar.HOUR_OF_DAY), today.get(Calendar.MINUTE))
-                    timeString.value = utilCalendarToString(time)
-                    currentLesson.value = getCurrentLesson(activity.lessons, time)
-                    delay(1000)
-                }
-            }
-        }
-    }
-
-    Text(timeString.value)
-
-    val les = currentLesson.value
-
-    if(les != null) {
-        Text("Кабинет: ${les.cabinet} / Время: ${les.startTime}-${getLessonEndString(les)} / Предмет: ${les.subject}")
-    }
-    else
-        Text("SHOW CABINETS HERE")
-
-}
-
-fun getCurrentLesson(lessons: Array<Lesson?>, currentTime: GregorianCalendar): Lesson? {
-    //val currentTime = utilStringToCalendar("10:00")
-
-    //Get min
-    var min: Lesson? = null
-    for(lesson in lessons) {
-        if(lesson == null)
-            continue
-
-        val end = getLessonEndCalendar(lesson)
-
-        if(end.before(currentTime))
-            continue
-
-        if(min == null)
-            min = lesson
-
-        if(getLessonEndCalendar(min) > end)
-            min = lesson
-    }
-
-    return min
-}
-
-fun getLessonEndCalendar(lesson: Lesson): GregorianCalendar {
-    val lessonTimeMinutes = 45
-    val calendar = utilStringToCalendar(lesson.startTime)
-    calendar.add(Calendar.MINUTE , lessonTimeMinutes)
-    return calendar
-}
-
-fun getLessonEndString(lesson: Lesson) = utilCalendarToString(getLessonEndCalendar(lesson))
-
-class Lesson(val startTime: String, val subject: String, val cabinet: Int)
