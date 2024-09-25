@@ -28,7 +28,7 @@ fun LessonStatus(activity: MainActivity) {
     val currentLesson = remember { mutableStateOf<Lesson?>(null) }
 
     //Set custom time and day
-    val customDay = remember { mutableStateOf(Day.Monday) }
+    val customDay = remember { mutableStateOf(DayName.Monday) }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text("День: ")
@@ -64,7 +64,7 @@ fun LessonStatus(activity: MainActivity) {
         val resultTime = customTime.value
         resultTime.set(Calendar.DAY_OF_WEEK, dayIndexToCalendarDay(customDay.value.ordinal))
 
-        currentLesson.value = getCurrentLesson(activity.schedule, resultTime)
+        //currentLesson.value = getCurrentLesson(activity.schedule, resultTime)
         delay(1000)
         customTime.value.add(Calendar.MINUTE,1)
     }
@@ -72,7 +72,7 @@ fun LessonStatus(activity: MainActivity) {
     suspend fun UpdateLessonStatus() {
         val today = GregorianCalendar()
         timeString.value = utilCalendarToString(today)
-        currentLesson.value = getCurrentLesson(activity.schedule, today)
+        //currentLesson.value = getCurrentLesson(activity.schedule, today)
         delay(1000)
     }
 

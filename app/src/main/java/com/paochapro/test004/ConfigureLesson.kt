@@ -1,86 +1,80 @@
 package com.paochapro.test004
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableIntState
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import kotlin.math.floor
 
 //TODO: Sometimes saving to schedule doesn't work!
 
-fun getTextFieldDataArray(dayIndex: Int, activity: MainActivity): List<SnapshotStateList<String>> {
+fun getTextFieldDataArray(dayIndex: Int, activity: MainActivity): List<List<String>> {
     val day = activity.schedule.getOrNull(dayIndex)
 
     if(day == null) {
-        return List(LESSON_COUNT) { mutableStateListOf("", "", "") }
+        println("Couldn't find day! Returning empty mutable list")
+        return List(LESSON_COUNT) { listOf("", "", "") }
     }
-    else {
-        return List(LESSON_COUNT) {
-            val lesson = day.getOrNull(it)
-            if(lesson != null)
-                mutableStateListOf(lesson.subject, lesson.startTime, "${lesson.cabinet}")
-            else
-                mutableStateListOf("", "", "")
-        }
+
+    return List(LESSON_COUNT) {
+        val lesson: Lesson? = day.lessons[it]
+        if(lesson != null)
+            listOf(lesson.subject, lesson.startTime, "${lesson.cabinet}")
+        else
+            listOf("", "", "")
     }
+}
+
+fun getLessonTimeMinutes(dayIndex: Int, activity: MainActivity): String {
+    val day = activity.schedule.getOrNull(dayIndex)
+
+    if(day != null)
+        return day.lessonTimeMinutes.toString()
+    else
+        return 333.toString()
+}
+
+fun getLessonTimeState(dayIndex: Int, activity: MainActivity): MutableState<String> {
+    return mutableStateOf(getLessonTimeMinutes(dayIndex, activity))
 }
 
 @Composable
 fun ConfigureLesson(activity: MainActivity) {
-    val configureDay = remember { mutableStateOf(Day.Monday) }
+    //Day
+    val configureDay = remember { mutableStateOf(DayName.Monday) }
     val configureDayIndex = configureDay.value.ordinal
 
-    //Day
+    //Pure data
+    val lessonTimeMinutes = getLessonTimeState(configureDayIndex, activity)
+
+    val rowDataArray =
+        getTextFieldDataArray(configureDayIndex, activity).map {
+            mutableStateListOf(it[0], it[1], it[2])
+        }
+
+    //Day picker
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text("День: ")
         DayPicker(configureDay.value) { configureDay.value = it }
     }
 
-    val rowDataArray = getTextFieldDataArray(configureDayIndex, activity)
+    //Lesson time
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("Длительность урока (мин): ")
+        TextField(lessonTimeMinutes.value, onValueChange = {lessonTimeMinutes.value = it})
+    }
 
+    //TextField grid
     val top = arrayOf("", "Предмет", "Время", "Кабинет")
     val weights = arrayOf(0.2f, 1.0f, 0.5f, 0.4f)
-
-//    @Composable
-//    fun Boxed(weight: Modifier, content: @Composable () -> Unit) {
-//        Box(modifier = weight.fillMaxWidth()) {
-//            content()
-//        }
-//    }
-//
-//    Column {
-//        //Column names
-//        Row {
-//            Boxed(Modifier.weight(weights[0])) {}
-//            Boxed(Modifier.weight(weights[1])) { Text("Предмет") }
-//            Boxed(Modifier.weight(weights[2])) { Text("Время") }
-//            Boxed(Modifier.weight(weights[3])) { Text("Кабинет") }
-//        }
-//
-//        for(y in 0 until LESSON_COUNT) {
-//            Row {
-//                //Lesson name
-//                Boxed(Modifier.weight(weights[0])) {
-//                    Text("${y+1}")
-//                }
-//
-//
-//                //TextFields
-//                for(x in 0..2) {
-//                    Box(modifier = Modifier.fillMaxWidth().weight(weights[x+1])) {
-//                        val rowData = rowDataArray[y]
-//                        TextField(rowData[x], {rowData[x]=it})
-//                    }
-//                }
-//            }
-//        }
-//    }
 
     @Composable
     fun SetupItem(row: Int, column: Int) {
@@ -111,24 +105,33 @@ fun ConfigureLesson(activity: MainActivity) {
         SetupItem(row, column)
     }
 
+    //Save button
     //TODO: check array oob
     fun getButtonSave(): () -> Unit = {
-        val day = activity.schedule[configureDayIndex]
+        val day = activity.schedule.getOrNull(configureDayIndex)
 
-        if(day == null)
-            activity.schedule[configureDayIndex] = arrayOfNulls<Lesson?>(LESSON_COUNT)
+        if(day == null) {
+            println("Couldn't find day!")
+        }
 
-        if(day != null){
-            //Saving
+        //Saving
+        if(day != null) {
+            val time = lessonTimeMinutes.value.toIntOrNull()
+
+            if(time != null)
+                day.lessonTimeMinutes = time
+            else
+                day.lessonTimeMinutes = DEFAULT_LESSON_TIME_MINS
+
             for(n in 0..< LESSON_COUNT) {
                 val row = rowDataArray.getOrElse(n) { listOf("","","") }
 
                 if(row[0] == "" || row[1] == "" || row[2] == "") {
-                    day[n] = null
+                    day.lessons[n] = null
                     continue
                 }
 
-                day[n] = Lesson(row[1], row[0], row[2].toInt())
+                day.lessons[n] = Lesson(row[1], row[0], row[2].toInt())
             }
         }
 
@@ -138,4 +141,9 @@ fun ConfigureLesson(activity: MainActivity) {
     Button(onClick = getButtonSave()) {
         Text("Save")
     }
+}
+
+@Composable
+fun ConfigureDay(activity: MainActivity, configureDayIndex: Int) {
+
 }

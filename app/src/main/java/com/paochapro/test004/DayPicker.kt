@@ -10,7 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 
 @Composable
-fun DayPicker(value: Day, onDayPick: (Day) -> Unit)
+fun DayPicker(value: DayName, onDayPick: (DayName) -> Unit)
 {
     val expanded = remember { mutableStateOf(false) }
     Column {
@@ -18,7 +18,7 @@ fun DayPicker(value: Day, onDayPick: (Day) -> Unit)
             Text(value.rusTranslation)
         }
         DropdownMenu(expanded = expanded.value, onDismissRequest = { expanded.value = false }) {
-            for (day in Day.entries) {
+            for (day in DayName.entries) {
                 DropdownMenuItem(text = { Text(day.rusTranslation) }, onClick = {
                     expanded.value = false
                     onDayPick(day)
