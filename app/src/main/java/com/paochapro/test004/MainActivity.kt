@@ -69,13 +69,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        schedule = readSchedule(this, SCHEDULE_FILE_NAME, getEmptySchedule(), shouldPrint = false)
+        createTemplateSchedule(false, false)
+        //schedule = readSchedule(this, SCHEDULE_FILE_NAME, getEmptySchedule(), shouldPrint = false)
         printSchedule()
 
         setContent { UpdateScreens(this) }
     }
 
-    fun saveSchedule() = saveSchedule(this, SCHEDULE_FILE_NAME, getEmptySchedule(), shouldPrint = false)
+    fun saveSchedule(shouldPrint: Boolean = false) = saveSchedule(this, SCHEDULE_FILE_NAME, schedule, shouldPrint)
 
     private fun createTemplateSchedule(addEighthLesson: Boolean, addSunday: Boolean) {
         val subjects = arrayOf("Рус", "Инф", "Алгб", "Физ", "Био")

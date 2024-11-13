@@ -42,10 +42,6 @@ fun getLessonTimeMinutes(dayIndex: Int, activity: MainActivity): String {
         return 333.toString()
 }
 
-fun getLessonTimeState(dayIndex: Int, activity: MainActivity): MutableState<String> {
-    return mutableStateOf(getLessonTimeMinutes(dayIndex, activity))
-}
-
 @Composable
 fun ConfigureLesson(activity: MainActivity) {
     //Day
@@ -53,12 +49,15 @@ fun ConfigureLesson(activity: MainActivity) {
     val configureDayIndex = configureDay.value.ordinal
 
     //Pure data
-    val lessonTimeMinutes = getLessonTimeState(configureDayIndex, activity)
+    val lessonTimeMinutes = remember(configureDayIndex) {
+        mutableStateOf(getLessonTimeMinutes(configureDayIndex, activity))
+    }
 
-    val rowDataArray =
+    val rowDataArray = remember(configureDayIndex) {
         getTextFieldDataArray(configureDayIndex, activity).map {
             mutableStateListOf(it[0], it[1], it[2])
         }
+    }
 
     //Day picker
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -141,9 +140,4 @@ fun ConfigureLesson(activity: MainActivity) {
     Button(onClick = getButtonSave()) {
         Text("Save")
     }
-}
-
-@Composable
-fun ConfigureDay(activity: MainActivity, configureDayIndex: Int) {
-
 }

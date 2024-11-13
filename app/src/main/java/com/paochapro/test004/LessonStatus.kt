@@ -8,6 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -20,15 +21,15 @@ import java.util.GregorianCalendar
 
 @Composable
 fun LessonStatus(activity: MainActivity) {
+    //Custom
     val usingCustomTime = remember { mutableStateOf(false) }
     val customTime = remember { mutableStateOf(GregorianCalendar()) }
     val customTimeText = remember { mutableStateOf("") }
+    val customDay = remember { mutableStateOf(DayName.Monday) }
 
     val timeString = remember { mutableStateOf("") }
     val currentLesson = remember { mutableStateOf<Lesson?>(null) }
-
-    //Set custom time and day
-    val customDay = remember { mutableStateOf(DayName.Monday) }
+    val currentDay = remember { mutableStateOf(Day(arrayOfNulls(8))) }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text("День: ")
@@ -59,20 +60,43 @@ fun LessonStatus(activity: MainActivity) {
     }
 
     //Update lesson status
-    suspend fun UpdateLessonStatusCustom() {
-        timeString.value = utilCalendarToString(customTime.value)
+    suspend fun updateLessonStatusCustom() {
         val resultTime = customTime.value
         resultTime.set(Calendar.DAY_OF_WEEK, dayIndexToCalendarDay(customDay.value.ordinal))
 
-        //currentLesson.value = getCurrentLesson(activity.schedule, resultTime)
+        val dayOfWeek = calendarDayToDayIndex(resultTime.get(Calendar.DAY_OF_WEEK))
+        val day = activity.schedule.getOrNull(dayOfWeek)
+
+        timeString.value = utilCalendarToString(customTime.value)
+
+        if(day != null) {
+            currentLesson.value = getCurrentLesson(day, resultTime)
+            currentDay.value = day
+        }
+        else
+            currentLesson.value = null
+
         delay(1000)
+
         customTime.value.add(Calendar.MINUTE,1)
     }
 
-    suspend fun UpdateLessonStatus() {
+    suspend fun updateLessonStatus() {
         val today = GregorianCalendar()
+        val dayOfWeek = calendarDayToDayIndex(today.get(Calendar.DAY_OF_WEEK))
+        val day = activity.schedule.getOrNull(dayOfWeek)
+
         timeString.value = utilCalendarToString(today)
-        //currentLesson.value = getCurrentLesson(activity.schedule, today)
+
+        if(day != null) {
+            currentLesson.value = getCurrentLesson(day, today)
+            currentDay.value = day
+        }
+        else
+            currentLesson.value = null
+
+        
+
         delay(1000)
     }
 
@@ -81,7 +105,7 @@ fun LessonStatus(activity: MainActivity) {
 
         LaunchedEffect(Unit) {
             println("Launched effect! Custom time")
-            coroutineScope.launch { while(true) {UpdateLessonStatusCustom()} }
+            coroutineScope.launch { while(true) {updateLessonStatusCustom()} }
         }
     }
 
@@ -90,7 +114,7 @@ fun LessonStatus(activity: MainActivity) {
 
         LaunchedEffect(Unit) {
             println("Launched effect! Current time")
-            coroutineScope.launch { while(true) {UpdateLessonStatus()} }
+            coroutineScope.launch { while(true) {updateLessonStatus()} }
         }
     }
 
@@ -100,7 +124,7 @@ fun LessonStatus(activity: MainActivity) {
     val les = currentLesson.value
 
     if(les != null) {
-        Text("Кабинет: ${les.cabinet} / Время: ${les.startTime}-${getLessonEndString(les)} / Предмет: ${les.subject}")
+        Text("Кабинет: ${les.cabinet} / Время: ${les.startTime}-${getLessonEndString(les, currentDay.value.lessonTimeMinutes)} / Предмет: ${les.subject}")
     }
     else
         Text("SHOW CABINETS HERE")
@@ -131,18 +155,16 @@ fun dayIndexToCalendarDay(dayIndex: Int) =
         else -> Calendar.MONDAY
     }
 
-fun getCurrentLesson(schedule: Array<Array<Lesson?>?>, today: GregorianCalendar): Lesson? {
+fun getCurrentLesson(day: Day, today: GregorianCalendar): Lesson? {
     val currentTime = GregorianCalendar(0, 0, 0, today.get(Calendar.HOUR_OF_DAY), today.get(Calendar.MINUTE))
-    val dayOfWeek = calendarDayToDayIndex(today.get(Calendar.DAY_OF_WEEK))
-    val lessons = schedule.getOrNull(dayOfWeek) ?: return null
 
     //Get min
     var min: Lesson? = null
-    for(lesson in lessons) {
+    for(lesson in day.lessons) {
         if(lesson == null)
             continue
 
-        val end = getLessonEndCalendar(lesson)
+        val end = getLessonEndCalendar(lesson, day.lessonTimeMinutes)
 
         if(end.before(currentTime))
             continue
@@ -150,18 +172,17 @@ fun getCurrentLesson(schedule: Array<Array<Lesson?>?>, today: GregorianCalendar)
         if(min == null)
             min = lesson
 
-        if(getLessonEndCalendar(min) > end)
+        if(getLessonEndCalendar(min, day.lessonTimeMinutes) > end)
             min = lesson
     }
 
     return min
 }
 
-fun getLessonEndCalendar(lesson: Lesson): GregorianCalendar {
-    val lessonTimeMinutes = 45
+fun getLessonEndCalendar(lesson: Lesson, lessonTimeMinutes: Int): GregorianCalendar {
     val calendar = utilStringToCalendar(lesson.startTime)
     calendar.add(Calendar.MINUTE , lessonTimeMinutes)
     return calendar
 }
 
-fun getLessonEndString(lesson: Lesson) = utilCalendarToString(getLessonEndCalendar(lesson))
+fun getLessonEndString(lesson: Lesson, lessonTimeMinutes: Int) = utilCalendarToString(getLessonEndCalendar(lesson, lessonTimeMinutes))
