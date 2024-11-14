@@ -48,7 +48,7 @@ internal fun updateAppWidget(
 //        }
 //    }
 
-    val widgetText = "!Apple!"
+    val widgetText = "-"
 
     // Construct the RemoteViews object
     val views = RemoteViews(context.packageName, R.layout.paochapro_widget)

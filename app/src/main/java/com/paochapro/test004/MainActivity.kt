@@ -1,6 +1,13 @@
 package com.paochapro.test004
 
+import android.appwidget.AppWidgetManager
+import android.content.BroadcastReceiver
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
+import android.widget.RemoteViews
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ScrollState
@@ -14,6 +21,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.paochapro.test004.ui.theme.Test004Theme
+import java.util.Calendar
+import java.util.GregorianCalendar
 import java.util.Random
 
 val fullWidth = Modifier.fillMaxWidth()
@@ -59,6 +68,41 @@ class Lesson(val startTime: String, val subject: String, val cabinet: Int)
 
 class Day(val lessons: Array<Lesson?>, var lessonTimeMinutes: Int = DEFAULT_LESSON_TIME_MINS)
 
+class TimeReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+        if(intent?.action != Intent.ACTION_TIME_TICK) {
+            return
+        }
+
+        println("Minute changed: ${Calendar.getInstance().get(Calendar.MINUTE)}")
+
+        if(context == null) {
+            println("No context was found in TimeReceiver")
+            return
+        }
+
+        //Update widgets
+        val activity = context as MainActivity
+        val currentLesson = activity.getCurrentLesson()
+        val lessonLength = activity.getLessonLength()
+        var widgetText = "-"
+
+        if(currentLesson != null) {
+            val end = getLessonEndString(currentLesson, lessonLength)
+            widgetText = "${currentLesson.startTime}-${end} ${currentLesson.subject} ${currentLesson.cabinet}"
+        }
+
+        val appWidgetManager = AppWidgetManager.getInstance(context)
+        val widgetIds = appWidgetManager.getAppWidgetIds(ComponentName(context, PaochaproWidget::class.java))
+
+        for(id in widgetIds) {
+            val views = RemoteViews(context.packageName, R.layout.paochapro_widget)
+            views.setTextViewText(R.id.appwidget_text, widgetText)
+            appWidgetManager.updateAppWidget(id, views)
+        }
+    }
+}
+
 class MainActivity : ComponentActivity() {
     data class FileLesson(val lesson: Lesson?)
     data class FileDay(val lessons: Array<FileLesson>, val lessonTimeMinutes: Int)
@@ -69,16 +113,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        createTemplateSchedule(false, false)
-        //schedule = readSchedule(this, SCHEDULE_FILE_NAME, getEmptySchedule(), shouldPrint = false)
+        schedule = readSchedule(this, SCHEDULE_FILE_NAME, getEmptySchedule(), shouldPrint = false)
         printSchedule()
+
+        //Register minute change on clock
+        registerReceiver(TimeReceiver(), IntentFilter(Intent.ACTION_TIME_TICK))
 
         setContent { UpdateScreens(this) }
     }
 
+    //Working with schedule
     fun saveSchedule(shouldPrint: Boolean = false) = saveSchedule(this, SCHEDULE_FILE_NAME, schedule, shouldPrint)
 
-    private fun createTemplateSchedule(addEighthLesson: Boolean, addSunday: Boolean) {
+    fun createTemplateSchedule(addEighthLesson: Boolean, addSunday: Boolean) {
         val subjects = arrayOf("Рус", "Инф", "Алгб", "Физ", "Био")
 
         schedule = getEmptySchedule()
@@ -128,6 +175,34 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun getEmptySchedule() = Array(DAY_COUNT) { Day(arrayOfNulls(LESSON_COUNT), DEFAULT_LESSON_TIME_MINS) }
+
+    //Get current lesson
+    fun getCurrentLesson() : Lesson? {
+        val today = GregorianCalendar()
+        val dayOfWeek = calendarDayToDayIndex(today.get(Calendar.DAY_OF_WEEK))
+        val day = schedule.getOrNull(dayOfWeek)
+
+        if(day == null) {
+            println("Failed to get current lesson")
+            return null
+        }
+
+        return com.paochapro.test004.getCurrentLesson(day, today)
+    }
+
+    //cringe code, almost identical functions
+    fun getLessonLength() : Int {
+        val today = GregorianCalendar()
+        val dayOfWeek = calendarDayToDayIndex(today.get(Calendar.DAY_OF_WEEK))
+        val day = schedule.getOrNull(dayOfWeek)
+
+        if(day == null) {
+            println("Failed to get lesson length")
+            return 1
+        }
+
+        return day.lessonTimeMinutes
+    }
 }
 
 @Composable

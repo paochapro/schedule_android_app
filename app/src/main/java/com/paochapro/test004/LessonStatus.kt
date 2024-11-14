@@ -129,6 +129,13 @@ fun LessonStatus(activity: MainActivity) {
     else
         Text("SHOW CABINETS HERE")
 
+    val addEigthLesson = remember { mutableStateOf(false) }
+    val addSunday = remember { mutableStateOf(false) }
+
+    Button(onClick = { activity.createTemplateSchedule(addEigthLesson.value, addSunday.value) }) { Text("Generate new schedule") }
+
+    TextCheckbox("Добавить 8ой урок", addEigthLesson.value, { x -> addEigthLesson.value = x } )
+    TextCheckbox("Добавить воскресенье", addSunday.value, { x -> addSunday.value = x } )
 }
 
 fun calendarDayToDayIndex(day: Int) =
