@@ -20,7 +20,7 @@
         android:background="@android:color/transparent"
         android:contentDescription="@string/appwidget_text"
         android:fontFamily="@font/jetbrains_mono"
-        android:text="88"
+        android:text="@string/appwidget_text"
         android:textColor="@color/white"
         android:textSize="16sp"
         android:textStyle="normal" />

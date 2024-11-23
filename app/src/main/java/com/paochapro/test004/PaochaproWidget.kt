@@ -1,5 +1,6 @@
 package com.paochapro.test004
 
+import android.app.Application
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
@@ -38,17 +39,7 @@ internal fun updateAppWidget(
 ) {
     println("updateAppWidget was called")
 
-//    val file = File(context.filesDir, "test.txt")
-//    var widgetText = context.getString(R.string.appwidget_text)
-//
-//    if(file.exists()) {
-//        var firstLine = file.readLines().elementAtOrNull(0)
-//        if(firstLine != null) {
-//            widgetText = firstLine
-//        }
-//    }
-
-    val widgetText = "-"
+    val widgetText = generateWidgetString(context, WIDGET_TEXT_LESSON_WASNT_FOUND)
 
     // Construct the RemoteViews object
     val views = RemoteViews(context.packageName, R.layout.paochapro_widget)

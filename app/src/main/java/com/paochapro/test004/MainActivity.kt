@@ -30,6 +30,8 @@ const val MSG = "MY_MESSAGE"
 const val LESSON_COUNT = 8
 const val DAY_COUNT = 7
 const val DEFAULT_LESSON_TIME_MINS = 40
+const val WIDGET_TEXT_LESSON_WASNT_FOUND = "Следующий предмет не найден"
+const val SCHEDULE_FILE_NAME = "test2.json"
 
 enum class Screen {
     UpdateLesson,
@@ -76,21 +78,13 @@ class TimeReceiver : BroadcastReceiver() {
 
         println("Minute changed: ${Calendar.getInstance().get(Calendar.MINUTE)}")
 
-        if(context == null) {
-            println("No context was found in TimeReceiver")
+        if(context == null || context !is MainActivity) {
+            println("No context was found in TimeReceiver, or it is not a MainActivity")
             return
         }
 
         //Update widgets
-        val activity = context as MainActivity
-        val currentLesson = activity.getCurrentLesson()
-        val lessonLength = activity.getLessonLength()
-        var widgetText = "-"
-
-        if(currentLesson != null) {
-            val end = getLessonEndString(currentLesson, lessonLength)
-            widgetText = "${currentLesson.startTime}-${end} ${currentLesson.subject} ${currentLesson.cabinet}"
-        }
+        val widgetText = generateWidgetString(context, WIDGET_TEXT_LESSON_WASNT_FOUND)
 
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val widgetIds = appWidgetManager.getAppWidgetIds(ComponentName(context, PaochaproWidget::class.java))
@@ -107,16 +101,15 @@ class MainActivity : ComponentActivity() {
     data class FileLesson(val lesson: Lesson?)
     data class FileDay(val lessons: Array<FileLesson>, val lessonTimeMinutes: Int)
 
-    val SCHEDULE_FILE_NAME = "test2.json"
     var schedule: Array<Day> = getEmptySchedule()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         schedule = readSchedule(this, SCHEDULE_FILE_NAME, getEmptySchedule(), shouldPrint = false)
-        printSchedule()
+        printSchedule(schedule)
 
-        //Register minute change on clock
+        //Register minute change on clock to update widgets
         registerReceiver(TimeReceiver(), IntentFilter(Intent.ACTION_TIME_TICK))
 
         setContent { UpdateScreens(this) }
@@ -125,84 +118,10 @@ class MainActivity : ComponentActivity() {
     //Working with schedule
     fun saveSchedule(shouldPrint: Boolean = false) = saveSchedule(this, SCHEDULE_FILE_NAME, schedule, shouldPrint)
 
-    fun createTemplateSchedule(addEighthLesson: Boolean, addSunday: Boolean) {
-        val subjects = arrayOf("Рус", "Инф", "Алгб", "Физ", "Био")
-
-        schedule = getEmptySchedule()
-
-        fun getRandLesson(lessonIndex: Int) : Lesson {
-            val subjectIndex = Random().nextInt(subjects.size)
-            val cab = (Random().nextInt(3) + 1) * 100 + (Random().nextInt(10) + 1 + 10)
-            return Lesson("${lessonIndex+8}:00", subjects[subjectIndex], cab)
-        }
-
-        fun getRandDay(dayIndex: Int): Day {
-            val randOffset = Random().nextInt(10)
-            val lessonTime = 40 + randOffset
-            val day = Day(arrayOfNulls(LESSON_COUNT), lessonTime)
-
-            for(l in 0 until LESSON_COUNT - 2) {
-                day.lessons[l] = getRandLesson(l)
-            }
-
-            if(addEighthLesson) {
-                day.lessons[7] = getRandLesson(7)
-            }
-
-            return day
-        }
-
-        for(dayIndex in 0 until DAY_COUNT - 2) {
-            schedule[dayIndex] = getRandDay(dayIndex)
-        }
-
-        if(addSunday)
-            schedule[6] = getRandDay(6)
+    fun createTemplateSchedule(addEightLesson: Boolean, addSunday: Boolean) {
+        schedule = com.paochapro.test004.createTemplateSchedule(addEightLesson, addSunday)
     }
 
-    private fun printSchedule() {
-        println("[Schedule]")
-        schedule.forEachIndexed { di, d ->
-            println("-- Day $di [Minutes:${d.lessonTimeMinutes}] --")
-
-            d.lessons.forEachIndexed { li, l ->
-                if (l != null)
-                    println("Lesson $li: ${l.subject} / ${l.startTime} / ${l.cabinet} ")
-                else
-                    println("Lesson NULL")
-            }
-        }
-    }
-
-    private fun getEmptySchedule() = Array(DAY_COUNT) { Day(arrayOfNulls(LESSON_COUNT), DEFAULT_LESSON_TIME_MINS) }
-
-    //Get current lesson
-    fun getCurrentLesson() : Lesson? {
-        val today = GregorianCalendar()
-        val dayOfWeek = calendarDayToDayIndex(today.get(Calendar.DAY_OF_WEEK))
-        val day = schedule.getOrNull(dayOfWeek)
-
-        if(day == null) {
-            println("Failed to get current lesson")
-            return null
-        }
-
-        return com.paochapro.test004.getCurrentLesson(day, today)
-    }
-
-    //cringe code, almost identical functions
-    fun getLessonLength() : Int {
-        val today = GregorianCalendar()
-        val dayOfWeek = calendarDayToDayIndex(today.get(Calendar.DAY_OF_WEEK))
-        val day = schedule.getOrNull(dayOfWeek)
-
-        if(day == null) {
-            println("Failed to get lesson length")
-            return 1
-        }
-
-        return day.lessonTimeMinutes
-    }
 }
 
 @Composable
