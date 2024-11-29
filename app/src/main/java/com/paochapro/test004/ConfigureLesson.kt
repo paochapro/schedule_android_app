@@ -3,6 +3,7 @@ package com.paochapro.test004
 import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -61,13 +62,13 @@ fun ConfigureLesson(activity: MainActivity) {
 
     //Day picker
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("День: ")
+        Text("День: ", color = MaterialTheme.colorScheme.onSurface)
         DayPicker(configureDay.value) { configureDay.value = it }
     }
 
     //Lesson time
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("Длительность урока (мин): ")
+        Text("Длительность урока (мин): ", color = MaterialTheme.colorScheme.onSurface)
         TextField(lessonTimeMinutes.value, onValueChange = {lessonTimeMinutes.value = it})
     }
 
@@ -79,13 +80,13 @@ fun ConfigureLesson(activity: MainActivity) {
     fun SetupItem(row: Int, column: Int) {
         //Column names
         if (row == 0) {
-            Text(top[column])
+            Text(top[column], color = MaterialTheme.colorScheme.onSurface)
             return
         }
 
         //Lesson number
         if (column == 0) {
-            Text("$row")
+            Text("$row", color = MaterialTheme.colorScheme.onSurface)
             return
         }
 

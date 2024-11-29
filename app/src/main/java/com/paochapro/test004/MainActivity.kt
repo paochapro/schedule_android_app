@@ -11,31 +11,41 @@ import android.widget.RemoteViews
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import com.paochapro.test004.ui.theme.Test004Theme
 import java.util.Calendar
-import java.util.GregorianCalendar
-import java.util.Random
 
-val fullWidth = Modifier.fillMaxWidth()
 const val MSG = "MY_MESSAGE"
 const val LESSON_COUNT = 8
 const val DAY_COUNT = 7
 const val DEFAULT_LESSON_TIME_MINS = 40
 const val WIDGET_TEXT_LESSON_WASNT_FOUND = "Следующий предмет не найден"
 const val SCHEDULE_FILE_NAME = "test2.json"
+val CONTENT_COLOR = Color.White
 
 enum class Screen {
-    UpdateLesson,
-    ConfigureLesson
+    MainScreen,
+    ConfigureLesson,
+    DevScreen
 }
 
 enum class DayName(val rusTranslation: String) {
@@ -124,24 +134,37 @@ class MainActivity : ComponentActivity() {
 
 }
 
+
 @Composable
 fun UpdateScreens(activity: MainActivity) {
-    val screen = remember { mutableStateOf(Screen.UpdateLesson) }
+    val screen = remember { mutableStateOf(Screen.MainScreen) }
 
-    Test004Theme { Column(modifier = Modifier.verticalScroll(ScrollState(0))) {
+    Test004Theme {
+    Column(modifier = Modifier.verticalScroll(ScrollState(0))) {
         when(screen.value) {
-            Screen.UpdateLesson -> {
-                Button({ screen.value = Screen.ConfigureLesson }) {
-                    Text("Configure lesson")
+            Screen.MainScreen -> {
+                val buttonColors = ButtonDefaults.buttonColors(contentColor = MaterialTheme.colorScheme.onPrimaryContainer)
+                Row(modifier = Modifier
+                    .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Button(onClick = { screen.value = Screen.ConfigureLesson }) { Text("Изменить расписание") }
+                    Button(onClick = { screen.value = Screen.DevScreen }) { Text("Тестирование") }
                 }
-                LessonStatus(activity)
             }
             Screen.ConfigureLesson -> {
-                Button({ screen.value = Screen.UpdateLesson }) {
-                    Text("Go back")
-                }
+                ReturnToMainScreenButton({screen.value = Screen.MainScreen})
                 ConfigureLesson(activity)
             }
+            Screen.DevScreen -> {
+                ReturnToMainScreenButton({screen.value = Screen.MainScreen})
+                DevScreen(activity)
+            }
         }
-    } }
+    }
+    }
+}
+
+@Composable
+fun ReturnToMainScreenButton(onClick: () -> Unit) {
+    Button(onClick = onClick) { Text("Назад") }
 }

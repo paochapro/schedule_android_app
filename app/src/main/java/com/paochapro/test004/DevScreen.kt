@@ -4,11 +4,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -20,7 +20,7 @@ import java.util.Calendar
 import java.util.GregorianCalendar
 
 @Composable
-fun LessonStatus(activity: MainActivity) {
+fun DevScreen(activity: MainActivity) {
     //Custom
     val usingCustomTime = remember { mutableStateOf(false) }
     val customTime = remember { mutableStateOf(GregorianCalendar()) }
@@ -32,7 +32,7 @@ fun LessonStatus(activity: MainActivity) {
     val currentDay = remember { mutableStateOf(Day(arrayOfNulls(8))) }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("День: ")
+        Text("День: ", color = MaterialTheme.colorScheme.onSurface)
         DayPicker(customDay.value) { customDay.value = it }
     }
 
@@ -55,7 +55,9 @@ fun LessonStatus(activity: MainActivity) {
         Button(onClick = ::onButtonPress) { Text("Update time") }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(setCurrentTime.value, {setCurrentTime.value = it})
-            Text("Текущее время", modifier = Modifier.clickable {setCurrentTime.value = !setCurrentTime.value})
+            Text("Текущее время",
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.clickable {setCurrentTime.value = !setCurrentTime.value})
         }
     }
 
@@ -119,15 +121,18 @@ fun LessonStatus(activity: MainActivity) {
     }
 
     //Show time string and current lesson
-    Text(timeString.value)
+    Text(timeString.value, color = MaterialTheme.colorScheme.onSurface)
 
     val les = currentLesson.value
 
     if(les != null) {
-        Text("Кабинет: ${les.cabinet} / Время: ${les.startTime}-${getLessonEndString(les, currentDay.value.lessonTimeMinutes)} / Предмет: ${les.subject}")
+        Text(
+            color = MaterialTheme.colorScheme.onSurface,
+            text = "Кабинет: ${les.cabinet} / Время: ${les.startTime}-${getLessonEndString(les, currentDay.value.lessonTimeMinutes)} / Предмет: ${les.subject}")
     }
     else
-        Text("SHOW CABINETS HERE")
+        Text(color = MaterialTheme.colorScheme.onSurface,
+            text= "SHOW CABINETS HERE")
 
     val addEigthLesson = remember { mutableStateOf(false) }
     val addSunday = remember { mutableStateOf(false) }

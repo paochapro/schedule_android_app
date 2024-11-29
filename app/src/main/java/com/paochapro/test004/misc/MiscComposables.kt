@@ -1,5 +1,7 @@
 package com.paochapro.test004.misc
 
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.Modifier
 import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Button
@@ -14,12 +16,13 @@ import androidx.compose.ui.graphics.Color
 import com.paochapro.test004.Lesson
 import com.paochapro.test004.MSG
 import com.paochapro.test004.MainActivity
-import com.paochapro.test004.fullWidth
 import com.paochapro.test004.getCurrentLesson
 import com.paochapro.test004.getLessonEndString
 import com.paochapro.test004.ui.theme.Test004Theme
 import com.paochapro.test004.utilStringToCalendar
 import java.io.File
+
+val fullWidth = Modifier.fillMaxWidth()
 
 fun saveFile(context: MainActivity, data: String) {
     val file = File(context.filesDir, "test.txt")
