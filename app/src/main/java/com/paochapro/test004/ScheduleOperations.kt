@@ -2,12 +2,13 @@ package com.paochapro.test004
 
 import android.content.Context
 import com.beust.klaxon.Klaxon
-import com.paochapro.test004.MainActivity.FileDay
-import com.paochapro.test004.MainActivity.FileLesson
 import java.io.File
 import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.Random
+
+data class FileLesson(val lesson: Lesson?)
+data class FileDay(val lessons: Array<FileLesson>, val lessonTimeMinutes: Int)
 
 //File I/O
 fun readSchedule(
@@ -161,10 +162,14 @@ fun printSchedule(schedule: Array<Day>) {
  *
  * If no lesson for current time was found, function returns [defaultString]
  *
- * Automatically reads schedule file, looks up current day and lesson, and returns a string with current lesson info that is formatted for a widget
+ * Automatically reads schedule file, looks up current day and lesson, and returns a string with current lesson info that is formatted for a widge
+ *
+ * Format: time lesson cabinet
+ *
+ * Example: 8:00-8:45 Maths 204
  */
 fun generateWidgetString(context: Context, defaultString: String) : String {
-    val schedule = readSchedule(context, SCHEDULE_FILE_NAME, getEmptySchedule())
+    val schedule = readSchedule(context, SCHEDULE_FILE_NAME, getEmptySchedule(), shouldPrint = false)
 
     var currentLesson: Lesson? = null
     var lessonLength: Int = 1

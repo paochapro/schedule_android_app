@@ -13,26 +13,33 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.em
 import com.paochapro.test004.ui.theme.Test004Theme
 import java.util.Calendar
+
+//print lesson character count
+//        val lessonName = arrayOf("Математика", "Алгебра", "Геометрия", "Русский", "Литература", "География", "Башкирский", "Биология", "Английский", "Информатика", "История", "Обществознание", "Обж", "Химия")
+//        lessonName.forEach { println("$it: ${it.length}") }
+//        println("Среднее: ${lessonName.map { it.length }.average()}")
+//        println("---Сокращённые---")
+//        println(lessonName.map { it.getOrNull(0).toString() + it.getOrNull(1).toString() + it.getOrNull(2).toString() })
 
 const val MSG = "MY_MESSAGE"
 const val LESSON_COUNT = 8
@@ -80,7 +87,7 @@ class Lesson(val startTime: String, val subject: String, val cabinet: Int)
 
 class Day(val lessons: Array<Lesson?>, var lessonTimeMinutes: Int = DEFAULT_LESSON_TIME_MINS)
 
-class TimeReceiver : BroadcastReceiver() {
+class LessonStatusUpdate : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if(intent?.action != Intent.ACTION_TIME_TICK) {
             return
@@ -104,12 +111,14 @@ class TimeReceiver : BroadcastReceiver() {
             views.setTextViewText(R.id.appwidget_text, widgetText)
             appWidgetManager.updateAppWidget(id, views)
         }
+
+        //Updating global time string, which means it updates things like main screen
+        context.timeString.value = widgetText
     }
 }
 
 class MainActivity : ComponentActivity() {
-    data class FileLesson(val lesson: Lesson?)
-    data class FileDay(val lessons: Array<FileLesson>, val lessonTimeMinutes: Int)
+    var timeString = mutableStateOf("no time")
 
     var schedule: Array<Day> = getEmptySchedule()
 
@@ -117,12 +126,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         schedule = readSchedule(this, SCHEDULE_FILE_NAME, getEmptySchedule(), shouldPrint = false)
-        printSchedule(schedule)
 
-        //Register minute change on clock to update widgets
-        registerReceiver(TimeReceiver(), IntentFilter(Intent.ACTION_TIME_TICK))
+        //Register minute change on clock to update widgets, main screen
+        registerReceiver(LessonStatusUpdate(), IntentFilter(Intent.ACTION_TIME_TICK))
 
-        setContent { UpdateScreens(this) }
+        setContent { Root(this) }
     }
 
     //Working with schedule
@@ -131,32 +139,41 @@ class MainActivity : ComponentActivity() {
     fun createTemplateSchedule(addEightLesson: Boolean, addSunday: Boolean) {
         schedule = com.paochapro.test004.createTemplateSchedule(addEightLesson, addSunday)
     }
-
 }
 
-
 @Composable
-fun UpdateScreens(activity: MainActivity) {
+fun Root(activity: MainActivity) {
     val screen = remember { mutableStateOf(Screen.MainScreen) }
 
     Test004Theme {
-    Column(modifier = Modifier.verticalScroll(ScrollState(0))) {
+    Column(modifier = Modifier.fillMaxSize()) {
         when(screen.value) {
             Screen.MainScreen -> {
-                val buttonColors = ButtonDefaults.buttonColors(contentColor = MaterialTheme.colorScheme.onPrimaryContainer)
                 Row(modifier = Modifier
                     .fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly) {
                     Button(onClick = { screen.value = Screen.ConfigureLesson }) { Text("Изменить расписание") }
                     Button(onClick = { screen.value = Screen.DevScreen }) { Text("Тестирование") }
                 }
+                MainScreen(activity)
             }
             Screen.ConfigureLesson -> {
-                ReturnToMainScreenButton({screen.value = Screen.MainScreen})
-                ConfigureLesson(activity)
+                Row(modifier = Modifier.fillMaxWidth().background(Color.hsl(0f,0f,0f,0.2f))) {
+                    Button({screen.value = Screen.MainScreen}) {
+                        Text("Назад")
+                    }
+                }
+
+                Column(modifier = Modifier.verticalScroll(ScrollState(0))) {
+                    ConfigureLesson(activity)
+                }
             }
             Screen.DevScreen -> {
-                ReturnToMainScreenButton({screen.value = Screen.MainScreen})
+                Row(modifier = Modifier.fillMaxWidth().background(Color.hsl(0f,0f,0f,0.2f))) {
+                    Button({screen.value = Screen.MainScreen}) {
+                        Text("Назад")
+                    }
+                }
                 DevScreen(activity)
             }
         }
@@ -165,6 +182,37 @@ fun UpdateScreens(activity: MainActivity) {
 }
 
 @Composable
-fun ReturnToMainScreenButton(onClick: () -> Unit) {
-    Button(onClick = onClick) { Text("Назад") }
+fun MainScreen(activity: MainActivity) {
+    //Creating strings that will show up in the center
+    val defaultString = "No lesson"
+    val generatedString = activity.timeString.value
+    val centerTexts = mutableListOf(defaultString)
+
+    if(generatedString != defaultString) {
+        val lessonStrings = generatedString.split(' ')
+        if(lessonStrings.size >= 3) {
+            val time = lessonStrings[0]
+            val lesson = lessonStrings[1]
+            val cabinet = lessonStrings[2]
+
+            centerTexts.clear()
+            centerTexts.add("$lesson $cabinet")
+            centerTexts.add(time)
+        }
+    }
+
+    val fontFamily = FontFamily(Font(R.font.jetbrains_mono))
+
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            for(i in centerTexts) {
+                Text(
+                    i,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = fontFamily,
+                    fontSize = 5.em
+                )
+            }
+        }
+    }
 }
