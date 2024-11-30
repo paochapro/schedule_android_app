@@ -18,10 +18,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import com.paochapro.test004.ui.theme.Test004Theme
 import java.util.Calendar
@@ -47,7 +50,7 @@ const val DAY_COUNT = 7
 const val DEFAULT_LESSON_TIME_MINS = 40
 const val WIDGET_TEXT_LESSON_WASNT_FOUND = "Следующий предмет не найден"
 const val SCHEDULE_FILE_NAME = "test2.json"
-val CONTENT_COLOR = Color.White
+const val SCHEDULE_UPDATE_INTENT = "com.paochapro.test004.SCHEDULE_UPDATE"
 
 enum class Screen {
     MainScreen,
@@ -100,25 +103,12 @@ class LessonStatusUpdate : BroadcastReceiver() {
             return
         }
 
-        //Update widgets
-        val widgetText = generateWidgetString(context, WIDGET_TEXT_LESSON_WASNT_FOUND)
-
-        val appWidgetManager = AppWidgetManager.getInstance(context)
-        val widgetIds = appWidgetManager.getAppWidgetIds(ComponentName(context, PaochaproWidget::class.java))
-
-        for(id in widgetIds) {
-            val views = RemoteViews(context.packageName, R.layout.paochapro_widget)
-            views.setTextViewText(R.id.appwidget_text, widgetText)
-            appWidgetManager.updateAppWidget(id, views)
-        }
-
-        //Updating global time string, which means it updates things like main screen
-        context.timeString.value = widgetText
+        context.updateWidgetsAndTimeString()
     }
 }
 
 class MainActivity : ComponentActivity() {
-    var timeString = mutableStateOf("no time")
+    var timeString = mutableStateOf<String?>(null)
 
     var schedule: Array<Day> = getEmptySchedule()
 
@@ -130,14 +120,38 @@ class MainActivity : ComponentActivity() {
         //Register minute change on clock to update widgets, main screen
         registerReceiver(LessonStatusUpdate(), IntentFilter(Intent.ACTION_TIME_TICK))
 
+        updateWidgetsAndTimeString()
+
         setContent { Root(this) }
     }
 
-    //Working with schedule
-    fun saveSchedule(shouldPrint: Boolean = false) = saveSchedule(this, SCHEDULE_FILE_NAME, schedule, shouldPrint)
+    fun updateWidgetsAndTimeString() {
+        println("Updating widgets and time string!")
 
-    fun createTemplateSchedule(addEightLesson: Boolean, addSunday: Boolean) {
-        schedule = com.paochapro.test004.createTemplateSchedule(addEightLesson, addSunday)
+        val widgetText = generateWidgetString(schedule)
+
+        val appWidgetManager = AppWidgetManager.getInstance(this)
+        val widgetIds = appWidgetManager.getAppWidgetIds(ComponentName(this, PaochaproWidget::class.java))
+
+        for(id in widgetIds) {
+            val views = RemoteViews(this.packageName, R.layout.paochapro_widget)
+            views.setTextViewText(R.id.appwidget_text, widgetText ?: WIDGET_TEXT_LESSON_WASNT_FOUND)
+            appWidgetManager.updateAppWidget(id, views)
+        }
+
+        //Updating global time string, which means it updates things like main screen
+        timeString.value = widgetText
+    }
+
+    //Working with schedule
+    fun onScheduleUpdate() {
+        saveSchedule(this, SCHEDULE_FILE_NAME, schedule, false)
+        updateWidgetsAndTimeString()
+    }
+
+    fun devCreateTemplateSchedule(addEightLesson: Boolean, addSunday: Boolean, addSaturday: Boolean = false) {
+        schedule = com.paochapro.test004.createTemplateSchedule(addEightLesson, addSunday, addSaturday)
+        updateWidgetsAndTimeString()
     }
 }
 
@@ -184,11 +198,10 @@ fun Root(activity: MainActivity) {
 @Composable
 fun MainScreen(activity: MainActivity) {
     //Creating strings that will show up in the center
-    val defaultString = "No lesson"
     val generatedString = activity.timeString.value
-    val centerTexts = mutableListOf(defaultString)
+    val centerTexts = mutableListOf("Нет урока")
 
-    if(generatedString != defaultString) {
+    if(generatedString != null) {
         val lessonStrings = generatedString.split(' ')
         if(lessonStrings.size >= 3) {
             val time = lessonStrings[0]

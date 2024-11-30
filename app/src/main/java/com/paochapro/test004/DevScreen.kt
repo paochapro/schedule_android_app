@@ -52,7 +52,7 @@ fun DevScreen(activity: MainActivity) {
     val setCurrentTime = remember { mutableStateOf(false) }
 
     Row {
-        Button(onClick = ::onButtonPress) { Text("Update time") }
+        Button(onClick = ::onButtonPress) { Text("Обновить") }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(setCurrentTime.value, {setCurrentTime.value = it})
             Text("Текущее время",
@@ -132,13 +132,15 @@ fun DevScreen(activity: MainActivity) {
     }
     else
         Text(color = MaterialTheme.colorScheme.onSurface,
-            text= "SHOW CABINETS HERE")
+            text= "Нет урока")
 
     val addEigthLesson = remember { mutableStateOf(false) }
+    val addSaturday = remember { mutableStateOf(false) }
     val addSunday = remember { mutableStateOf(false) }
 
-    Button(onClick = { activity.createTemplateSchedule(addEigthLesson.value, addSunday.value) }) { Text("Generate new schedule") }
+    Button(onClick = { activity.devCreateTemplateSchedule(addEigthLesson.value, addSunday.value, addSaturday.value) }) { Text("Сгенерировать расписание") }
 
     TextCheckbox("Добавить 8ой урок", addEigthLesson.value, { x -> addEigthLesson.value = x } )
+    TextCheckbox("Добавить субботу", addSaturday.value, { x -> addSaturday.value = x } )
     TextCheckbox("Добавить воскресенье", addSunday.value, { x -> addSunday.value = x } )
 }

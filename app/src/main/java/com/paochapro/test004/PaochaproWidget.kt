@@ -39,11 +39,11 @@ internal fun updateAppWidget(
 ) {
     println("updateAppWidget was called")
 
-    val widgetText = generateWidgetString(context, WIDGET_TEXT_LESSON_WASNT_FOUND)
+    val widgetText = generateWidgetString(getScheduleFromFile(context))
 
     // Construct the RemoteViews object
     val views = RemoteViews(context.packageName, R.layout.paochapro_widget)
-    views.setTextViewText(R.id.appwidget_text, widgetText)
+    views.setTextViewText(R.id.appwidget_text, widgetText ?: WIDGET_TEXT_LESSON_WASNT_FOUND)
 
     // Instruct the widget manager to update the widget
     appWidgetManager.updateAppWidget(appWidgetId, views)

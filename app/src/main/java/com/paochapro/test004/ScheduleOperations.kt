@@ -106,7 +106,11 @@ fun saveSchedule(
 //Helper functions
 fun getEmptySchedule() = Array(DAY_COUNT) { Day(arrayOfNulls(LESSON_COUNT), DEFAULT_LESSON_TIME_MINS) }
 
-fun createTemplateSchedule(addEighthLesson: Boolean, addSunday: Boolean) : Array<Day> {
+fun getScheduleFromFile(context: Context) : Array<Day> {
+    return readSchedule(context, SCHEDULE_FILE_NAME, getEmptySchedule(), shouldPrint = false)
+}
+
+fun createTemplateSchedule(addEighthLesson: Boolean, addSunday: Boolean, addSaturday: Boolean = false) : Array<Day> {
     val subjects = arrayOf("Рус", "Инф", "Алгб", "Физ", "Био")
 
     val schedule = getEmptySchedule()
@@ -140,6 +144,9 @@ fun createTemplateSchedule(addEighthLesson: Boolean, addSunday: Boolean) : Array
     if(addSunday)
         schedule[6] = getRandDay(6)
 
+    if(addSaturday)
+        schedule[5] = getRandDay(5)
+
     return schedule
 }
 
@@ -168,9 +175,7 @@ fun printSchedule(schedule: Array<Day>) {
  *
  * Example: 8:00-8:45 Maths 204
  */
-fun generateWidgetString(context: Context, defaultString: String) : String {
-    val schedule = readSchedule(context, SCHEDULE_FILE_NAME, getEmptySchedule(), shouldPrint = false)
-
+fun generateWidgetString(schedule: Array<Day>) : String? {
     var currentLesson: Lesson? = null
     var lessonLength: Int = 1
 
@@ -192,7 +197,7 @@ fun generateWidgetString(context: Context, defaultString: String) : String {
         return "${currentLesson.startTime}-${end} ${currentLesson.subject} ${currentLesson.cabinet}"
     }
 
-    return defaultString
+    return null
 }
 
 /**Returns current lesson (or null) from [day] based on what [time] is right now.*/

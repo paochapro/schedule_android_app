@@ -1,11 +1,15 @@
 package com.paochapro.test004
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 
 //Source: https://dev.to/maaxgr/jetpack-compose-grid-without-lazy-5gb8
 
@@ -50,6 +54,7 @@ fun NonlazyGrid(
     columnWeights: Array<Float>,
     itemCount: Int,
     modifier: Modifier = Modifier,
+    rowModifier: (Int) -> Modifier,
     content: @Composable() (Int) -> Unit
 ) {
     if(columnWeights.size != columns) {
@@ -65,12 +70,12 @@ fun NonlazyGrid(
         for (rowId in 0 until rows) {
             val firstIndex = rowId * columns
 
-            Row {
+            Row(modifier = rowModifier(rowId)) {
                 for (columnId in 0 until columns) {
                     val index = firstIndex + columnId
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .fillMaxSize()
                             .weight(columnWeights[columnId])
                     ) {
                         if (index < itemCount) {
