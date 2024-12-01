@@ -1,50 +1,129 @@
 package com.paochapro.test004
 
-import android.app.Application
 import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT
+import android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH
+import android.appwidget.AppWidgetManager.OPTION_APPWIDGET_SIZES
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
-import android.util.Log
+import android.os.Bundle
 import android.widget.RemoteViews
-import java.io.File
+import androidx.compose.ui.unit.dp
 
 /**
  * Implementation of App Widget functionality.
  */
 class PaochaproWidget : AppWidgetProvider() {
+    companion object {
+        fun updateAll(context: Context) {
+            val manager = AppWidgetManager.getInstance(context)
+            val ids = manager
+                .getAppWidgetIds(ComponentName(context, PaochaproWidget::class.java))
+
+            for(id in ids) {
+                updateWidgetContents(context, manager, id)
+            }
+        }
+    }
+
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
+        println("onUpdate PaochaproWidget")
+
         // There may be multiple widgets active, so update all of them
-        for (appWidgetId in appWidgetIds) {
-            updateAppWidget(context, appWidgetManager, appWidgetId)
+        updateAll(context)
+    }
+
+    override fun onAppWidgetOptionsChanged(
+        context: Context?,
+        appWidgetManager: AppWidgetManager?,
+        appWidgetId: Int,
+        newOptions: Bundle?
+    ) {
+        if(context == null || appWidgetManager == null || newOptions == null) {
+            println("No context or appWidgetManager or newOptions was found when updating widget size (or options)")
+            return
         }
-    }
 
-    override fun onEnabled(context: Context) {
-        // Enter relevant functionality for when the first widget is created
-    }
+        val height = newOptions.getInt(OPTION_APPWIDGET_MIN_HEIGHT)
+        val width = newOptions.getInt(OPTION_APPWIDGET_MIN_WIDTH)
+        val layout = getWidgetLayout(width, height)
 
-    override fun onDisabled(context: Context) {
-        // Enter relevant functionality for when the last widget is disabled
+        updateWidgetContents(context, appWidgetManager, appWidgetId)
     }
 }
 
-internal fun updateAppWidget(
+internal fun updateWidgetContents(
     context: Context,
     appWidgetManager: AppWidgetManager,
     appWidgetId: Int
 ) {
-    println("updateAppWidget was called")
-
     val widgetText = generateWidgetString(getScheduleFromFile(context))
 
     // Construct the RemoteViews object
-    val views = RemoteViews(context.packageName, R.layout.paochapro_widget)
-    views.setTextViewText(R.id.appwidget_text, widgetText ?: WIDGET_TEXT_LESSON_WASNT_FOUND)
+    val info = appWidgetManager.getAppWidgetOptions(appWidgetId)
+    val layout = getWidgetLayout(info.getInt(OPTION_APPWIDGET_MIN_WIDTH), info.getInt(OPTION_APPWIDGET_MIN_HEIGHT))
+
+    val views = RemoteViews(context.packageName, layout)
+
+    //Updating according to layout
+    when(layout) {
+        R.layout.paochapro_widget -> views.setTextViewText(R.id.main_text, widgetText ?: WIDGET_TEXT_LESSON_WASNT_FOUND)
+        R.layout.paochapro_widget_2x1 -> {
+            var subjectAndCabinet = WIDGET_TEXT_LESSON_WASNT_FOUND
+            var time = ""
+
+            if(widgetText != null) {
+                val strings = widgetText.split(' ')
+                subjectAndCabinet = "${strings[0]} ${strings[1]}"
+                time = strings[2]
+            }
+
+            views.setTextViewText(R.id.subject_cabinet, subjectAndCabinet)
+            views.setTextViewText(R.id.time, time)
+        }
+        R.layout.paochapro_widget_1x1 -> {
+            var subject = WIDGET_TEXT_LESSON_WASNT_FOUND
+            var time_start = ""
+            var time_end = ""
+            var cabinet = ""
+
+            if(widgetText != null) {
+                val strings = widgetText.split(' ')
+                subject = if (strings[0].length >= 8) strings[0].substring(0,6) + '…' else strings[0]
+                cabinet = strings[1]
+                val timeNumbers = strings[2].split('-')
+                time_start = timeNumbers[0]
+                time_end = timeNumbers[1]
+            }
+
+            views.setTextViewText(R.id.subject_1x1, subject)
+            views.setTextViewText(R.id.cabinet_1x1, cabinet)
+            views.setTextViewText(R.id.time_start_1x1, time_start)
+            views.setTextViewText(R.id.time_end_1x1, time_end)
+        }
+    }
 
     // Instruct the widget manager to update the widget
     appWidgetManager.updateAppWidget(appWidgetId, views)
 }
+
+internal fun getWidgetLayout(width: Int, height: Int) : Int {
+    var layout = R.layout.paochapro_widget
+
+    //I decided to not use 2x1, simple text wrap looks nicer
+//    if(width < (254 - 74 / 2) && height < (194 - 89/2) ) {
+//        layout = R.layout.paochapro_widget_2x1
+//    }
+
+    if(width < (164 - 74 / 2)) {
+        layout = R.layout.paochapro_widget_1x1
+    }
+
+    return layout
+}
+

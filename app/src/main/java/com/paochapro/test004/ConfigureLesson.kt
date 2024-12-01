@@ -1,42 +1,25 @@
 package com.paochapro.test004
 
-import android.annotation.SuppressLint
-import android.service.autofill.RegexValidator
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.CornerSize
-import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Shapes
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableIntState
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
-import androidx.core.text.isDigitsOnly
 import kotlin.math.floor
 
 //TODO: Sometimes saving to schedule doesn't work!
@@ -45,7 +28,7 @@ fun getTextFieldDataArray(dayIndex: Int, activity: MainActivity): List<List<Stri
     val day = activity.schedule.getOrNull(dayIndex)
 
     if(day == null) {
-        println("Couldn't find day! Returning empty mutable list")
+        println("Couldn't find day! Returning  empty mutable list")
         return List(LESSON_COUNT) { listOf("", "", "") }
     }
 
@@ -84,25 +67,43 @@ fun ConfigureLesson(activity: MainActivity) {
         }
     }
 
+    //Should block button
+    val isTimeIncorrectArray = remember { mutableStateListOf(false,false,false,false,false,false,false,false,
+        /*This one is for lesson length text-field. Index 8*/ false) }
+
     //Day picker
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text("День: ", color = MaterialTheme.colorScheme.onSurface)
         DayPicker(configureDay.value) { configureDay.value = it }
     }
 
-    //Lesson time
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    //Check if lesson length text-field is correct
+    val minsInt = lessonTimeMinutes.value.toIntOrNull()
+    var isLessonLengthError = true
+
+    if(minsInt != null) {
+        isLessonLengthError = minsInt >= 60
+    }
+
+    isTimeIncorrectArray[8] = isLessonLengthError
+
+    //Lesson length
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 4.dp)) {
         Text("Длительность урока (мин): ", color = MaterialTheme.colorScheme.onSurface)
-        TextField(lessonTimeMinutes.value, onValueChange = {lessonTimeMinutes.value = it})
+        TextFieldStylized(lessonTimeMinutes.value,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            onValueChanged = {
+                if(it.length <= 2)
+                    lessonTimeMinutes.value = it
+            },
+            isError = isLessonLengthError
+        )
     }
 
     //TextField grid
     val top = arrayOf("", "Предмет", "Время", "Кабинет")
     val weights = arrayOf(0.15f, 1.0f, 0.6f, 0.5f)
     val columnPadding = Modifier.padding(horizontal = 4.dp)
-
-    //Should block button
-    val isTimeIncorrectArray = remember { mutableStateListOf(false,false,false,false,false,false,false,false) }
 
     @Composable
     fun SetupItem(row: Int, column: Int) {
@@ -190,6 +191,22 @@ fun ConfigureLesson(activity: MainActivity) {
         SetupItem(row, column)
     }
 
+    //Check if every row is either fully filled or not filled at all. Then block save button if needed
+    //Basically, block button if some row is partially filled
+    var isSomeRowIsPartiallyFilled = false
+
+    for(i in 0..<LESSON_COUNT) {
+        val rowData = rowDataArray[i]
+
+        if(rowData[0] == "" && rowData[1] == "" && rowData[2] == "")
+            continue
+
+        if(rowData[0] != "" && rowData[1] != "" && rowData[2] != "")
+            continue
+
+        isSomeRowIsPartiallyFilled = true
+    }
+
     //Save button
     //TODO: check array oob
     fun getButtonSave(): () -> Unit = {
@@ -225,13 +242,26 @@ fun ConfigureLesson(activity: MainActivity) {
     }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
-        val canSave = isTimeIncorrectArray.all {i-> i == false}
-        Button(onClick = getButtonSave(), enabled = canSave ) {
+        val correctTimeFormat = isTimeIncorrectArray.all {i-> i == false}
+
+        Button(onClick = getButtonSave(), enabled = correctTimeFormat && !isSomeRowIsPartiallyFilled) {
             Text("Сохранить")
         }
 
-        if(!canSave) {
-            Text("Неправильный формат времени.", color = Color(0xFFF33737), modifier = Modifier.padding(horizontal = 8.dp), fontSize = 2.em)
+        Column {
+            if (isSomeRowIsPartiallyFilled)
+                ErrorText("Данные не заполнены.")
+
+            if (!correctTimeFormat)
+                ErrorText("Неправильный формат времени.")
         }
     }
+}
+
+@Composable fun ErrorText(text: String) {
+    Text(text = text,
+        color = Color(0xFFF33737),
+        modifier = Modifier.padding(horizontal = 8.dp),
+        fontSize = 2.em
+    )
 }

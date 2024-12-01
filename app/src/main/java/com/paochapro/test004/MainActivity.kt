@@ -18,12 +18,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,7 +30,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import com.paochapro.test004.ui.theme.Test004Theme
 import java.util.Calendar
@@ -128,16 +125,9 @@ class MainActivity : ComponentActivity() {
     fun updateWidgetsAndTimeString() {
         println("Updating widgets and time string!")
 
+        PaochaproWidget.updateAll(this)
+
         val widgetText = generateWidgetString(schedule)
-
-        val appWidgetManager = AppWidgetManager.getInstance(this)
-        val widgetIds = appWidgetManager.getAppWidgetIds(ComponentName(this, PaochaproWidget::class.java))
-
-        for(id in widgetIds) {
-            val views = RemoteViews(this.packageName, R.layout.paochapro_widget)
-            views.setTextViewText(R.id.appwidget_text, widgetText ?: WIDGET_TEXT_LESSON_WASNT_FOUND)
-            appWidgetManager.updateAppWidget(id, views)
-        }
 
         //Updating global time string, which means it updates things like main screen
         timeString.value = widgetText
@@ -151,7 +141,12 @@ class MainActivity : ComponentActivity() {
 
     fun devCreateTemplateSchedule(addEightLesson: Boolean, addSunday: Boolean, addSaturday: Boolean = false) {
         schedule = com.paochapro.test004.createTemplateSchedule(addEightLesson, addSunday, addSaturday)
-        updateWidgetsAndTimeString()
+        onScheduleUpdate()
+    }
+
+    fun clearSchedule() {
+        schedule = getEmptySchedule()
+        onScheduleUpdate()
     }
 }
 
@@ -204,9 +199,9 @@ fun MainScreen(activity: MainActivity) {
     if(generatedString != null) {
         val lessonStrings = generatedString.split(' ')
         if(lessonStrings.size >= 3) {
-            val time = lessonStrings[0]
-            val lesson = lessonStrings[1]
-            val cabinet = lessonStrings[2]
+            val lesson = lessonStrings[0]
+            val cabinet = lessonStrings[1]
+            val time = lessonStrings[2]
 
             centerTexts.clear()
             centerTexts.add("$lesson $cabinet")

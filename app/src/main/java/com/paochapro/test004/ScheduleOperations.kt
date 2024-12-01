@@ -194,7 +194,7 @@ fun generateWidgetString(schedule: Array<Day>) : String? {
 
     if(currentLesson != null) {
         val end = getLessonEndString(currentLesson, lessonLength)
-        return "${currentLesson.startTime}-${end} ${currentLesson.subject} ${currentLesson.cabinet}"
+        return "${currentLesson.subject} ${currentLesson.cabinet} ${currentLesson.startTime}-${end}"
     }
 
     return null

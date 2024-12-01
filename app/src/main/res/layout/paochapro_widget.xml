@@ -3,10 +3,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/app_widget_background"
+    android:padding="2dp"
     android:theme="@style/Theme.Test004.AppWidgetContainer">
 
     <TextView
-        android:id="@+id/appwidget_text"
+        android:id="@+id/main_text"
         style="@style/Widget.Test004.AppWidget.InnerView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

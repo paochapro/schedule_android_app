@@ -139,6 +139,7 @@ fun DevScreen(activity: MainActivity) {
     val addSunday = remember { mutableStateOf(false) }
 
     Button(onClick = { activity.devCreateTemplateSchedule(addEigthLesson.value, addSunday.value, addSaturday.value) }) { Text("Сгенерировать расписание") }
+    Button(onClick = { activity.clearSchedule() }) { Text("Отчистить расписание") }
 
     TextCheckbox("Добавить 8ой урок", addEigthLesson.value, { x -> addEigthLesson.value = x } )
     TextCheckbox("Добавить субботу", addSaturday.value, { x -> addSaturday.value = x } )
