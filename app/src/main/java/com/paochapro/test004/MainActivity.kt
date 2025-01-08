@@ -123,8 +123,6 @@ class MainActivity : ComponentActivity() {
     }
 
     fun updateWidgetsAndTimeString() {
-        println("Updating widgets and time string!")
-
         PaochaproWidget.updateAll(this)
 
         val widgetText = generateWidgetString(schedule)

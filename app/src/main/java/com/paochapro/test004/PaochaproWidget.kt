@@ -1,13 +1,18 @@
 package com.paochapro.test004
 
+import android.app.PendingIntent
+import android.app.Service
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT
 import android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH
 import android.appwidget.AppWidgetManager.OPTION_APPWIDGET_SIZES
 import android.appwidget.AppWidgetProvider
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.os.IBinder
 import android.widget.RemoteViews
 import androidx.compose.ui.unit.dp
 
@@ -27,14 +32,19 @@ class PaochaproWidget : AppWidgetProvider() {
         }
     }
 
+    override fun onReceive(context: Context?, intent: Intent?) {
+        if(intent != null && context != null)
+            if (intent.action == null)
+                updateAll(context)
+
+        super.onReceive(context, intent)
+    }
+
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        println("onUpdate PaochaproWidget")
-
-        // There may be multiple widgets active, so update all of them
         updateAll(context)
     }
 
@@ -57,18 +67,29 @@ class PaochaproWidget : AppWidgetProvider() {
     }
 }
 
+
 internal fun updateWidgetContents(
     context: Context,
     appWidgetManager: AppWidgetManager,
     appWidgetId: Int
 ) {
+    println("Update widget contents")
+
     val widgetText = generateWidgetString(getScheduleFromFile(context))
 
     // Construct the RemoteViews object
     val info = appWidgetManager.getAppWidgetOptions(appWidgetId)
     val layout = getWidgetLayout(info.getInt(OPTION_APPWIDGET_MIN_WIDTH), info.getInt(OPTION_APPWIDGET_MIN_HEIGHT))
 
-    val views = RemoteViews(context.packageName, layout)
+    val pendingIntent = PendingIntent.getBroadcast(
+        context,
+        0,
+        Intent(context, PaochaproWidget::class.java),
+        PendingIntent.FLAG_IMMUTABLE)
+
+    val views = RemoteViews(context.packageName, layout).apply {
+        setOnClickPendingIntent(R.id.main_text, pendingIntent)
+    }
 
     //Updating according to layout
     when(layout) {
