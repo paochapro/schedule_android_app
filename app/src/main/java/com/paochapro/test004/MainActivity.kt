@@ -1,5 +1,7 @@
 package com.paochapro.test004
 
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -18,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import com.paochapro.test004.ui.theme.Test004Theme
 import java.util.Calendar
@@ -116,10 +120,28 @@ class MainActivity : ComponentActivity() {
 
         //Register minute change on clock to update widgets, main screen
         registerReceiver(LessonStatusUpdate(), IntentFilter(Intent.ACTION_TIME_TICK))
+        //setAlarmManager
+
+        //Show lesson schedule for the whole day before first lesson starts (8:00)
+        //Like this:
+        //1. Русский    5. Физика
+        //2. Русский    6. Биология
+        //3. Математика 7. География
+        //4. Математика 8. Химия
 
         updateWidgetsAndTimeString()
 
         setContent { Root(this) }
+    }
+
+    fun setAlarmManager() {
+        val intent = Intent(this, PaochaproWidget::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+
+        val currentLesson = getCurrentLessonFromSchedule(schedule)
+
+        val alarmManager = this.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        //alarmManager.setExact(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 20000, pendingIntent)
     }
 
     fun updateWidgetsAndTimeString() {
@@ -156,13 +178,12 @@ fun Root(activity: MainActivity) {
     Column(modifier = Modifier.fillMaxSize()) {
         when(screen.value) {
             Screen.MainScreen -> {
-                Row(modifier = Modifier
-                    .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly) {
-                    Button(onClick = { screen.value = Screen.ConfigureLesson }) { Text("Изменить расписание") }
-                    Button(onClick = { screen.value = Screen.DevScreen }) { Text("Тестирование") }
+                MainScreen(activity, Modifier.fillMaxWidth().weight(1f))
+                Column(modifier = Modifier
+                    .fillMaxWidth(),) {
+                    Button(modifier = Modifier.fillMaxWidth(), onClick = { screen.value = Screen.ConfigureLesson }) { Text("Изменить расписание") }
+                    Button(modifier = Modifier.fillMaxWidth(), onClick = { screen.value = Screen.DevScreen }) { Text("Тестирование") }
                 }
-                MainScreen(activity)
             }
             Screen.ConfigureLesson -> {
                 Row(modifier = Modifier.fillMaxWidth().background(Color.hsl(0f,0f,0f,0.2f))) {
@@ -189,7 +210,7 @@ fun Root(activity: MainActivity) {
 }
 
 @Composable
-fun MainScreen(activity: MainActivity) {
+fun MainScreen(activity: MainActivity, modifier: Modifier) {
     //Creating strings that will show up in the center
     val generatedString = activity.timeString.value
     val centerTexts = mutableListOf("Нет урока")
@@ -209,7 +230,7 @@ fun MainScreen(activity: MainActivity) {
 
     val fontFamily = FontFamily(Font(R.font.jetbrains_mono))
 
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             for(i in centerTexts) {
                 Text(

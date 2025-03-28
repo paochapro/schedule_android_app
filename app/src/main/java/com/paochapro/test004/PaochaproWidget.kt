@@ -34,8 +34,10 @@ class PaochaproWidget : AppWidgetProvider() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
         if(intent != null && context != null)
-            if (intent.action == null)
+            if (intent.action == null) {
+                println("Update all")
                 updateAll(context)
+            }
 
         super.onReceive(context, intent)
     }

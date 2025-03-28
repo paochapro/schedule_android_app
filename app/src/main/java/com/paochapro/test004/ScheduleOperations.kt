@@ -200,6 +200,26 @@ fun generateWidgetString(schedule: Array<Day>) : String? {
     return null
 }
 
+fun getCurrentLessonFromSchedule(schedule: Array<Day>) : Lesson? {
+    var result: Lesson? = null
+    var lessonLength: Int = 1
+
+    //Getting current lesson and its length
+    val time = GregorianCalendar()
+    val dayOfWeek = calendarDayToDayIndex(time.get(Calendar.DAY_OF_WEEK))
+    val day = schedule.getOrNull(dayOfWeek)
+
+    if(day != null) {
+        result = getCurrentLesson(day, time)
+        lessonLength = day.lessonTimeMinutes
+    }
+    else {
+        println("Failed to get current day")
+    }
+
+    return result
+}
+
 /**Returns current lesson (or null) from [day] based on what [time] is right now.*/
 fun getCurrentLesson(day: Day, time: GregorianCalendar): Lesson? {
     val currentTime = GregorianCalendar(0, 0, 0, time.get(Calendar.HOUR_OF_DAY), time.get(Calendar.MINUTE))

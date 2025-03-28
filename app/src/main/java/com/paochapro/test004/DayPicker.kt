@@ -8,6 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.text.TextStyle
 
 @Composable
 fun DayPicker(value: DayName, onDayPick: (DayName) -> Unit)
@@ -15,7 +16,7 @@ fun DayPicker(value: DayName, onDayPick: (DayName) -> Unit)
     val expanded = remember { mutableStateOf(false) }
     Column {
         Button({ expanded.value = true }) {
-            Text(value.rusTranslation)
+            Text(value.rusTranslation, style = TextStyle.Default)
         }
         DropdownMenu(expanded = expanded.value, onDismissRequest = { expanded.value = false }) {
             for (day in DayName.entries) {
