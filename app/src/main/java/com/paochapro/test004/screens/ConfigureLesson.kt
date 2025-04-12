@@ -34,11 +34,14 @@ import com.paochapro.test004.Day
 import com.paochapro.test004.LESSON_COUNT
 import com.paochapro.test004.Lesson
 import com.paochapro.test004.MainActivity
+import com.paochapro.test004.calendarDayToDayIndex
 import com.paochapro.test004.composables.DayName
 import com.paochapro.test004.composables.DayPicker
 import com.paochapro.test004.composables.NonlazyGrid
 import com.paochapro.test004.composables.TextFieldStylized
 import com.paochapro.test004.composables.ValuePicker
+import java.util.Calendar
+import java.util.GregorianCalendar
 import java.util.Locale
 import kotlin.math.floor
 
@@ -72,9 +75,13 @@ fun getLessonTimeMinutes(week: Array<Day>, dayIndex: Int): String {
 
 @Composable
 fun ConfigureLesson(activity: MainActivity) {
+    val dayOfWeek = calendarDayToDayIndex(GregorianCalendar().get(Calendar.DAY_OF_WEEK))
+    val thisWeek = GregorianCalendar().get(Calendar.WEEK_OF_YEAR)
+    println()
+
     //Week
     val weekValues = arrayOf("Чётная", "Нечётная")
-    val configureWeek = remember { mutableStateOf(weekValues[0]) }
+    val configureWeek = remember { mutableStateOf( if(thisWeek % 2 == 0) weekValues[0] else weekValues[1] ) }
 
     //Get schedule to work with, based on chosen week
     val week =
@@ -84,7 +91,7 @@ fun ConfigureLesson(activity: MainActivity) {
             activity.schedule.weekUneven
 
     //Day
-    val configureDay = remember { mutableStateOf(DayName.Monday) }
+    val configureDay = remember { mutableStateOf(DayName.fromInt(dayOfWeek)) }
     val configureDayIndex = configureDay.value.ordinal
 
     //Pure data

@@ -20,8 +20,8 @@ enum class DayName(val rusTranslation: String) {
     Sunday("Воскресенье");
 
     companion object {
-        fun fromInt(int: Int) {
-            when(int) {
+        fun fromInt(int: Int) : DayName {
+            return when(int) {
                 0 -> Monday
                 1 -> Tuesday
                 2 -> Wednesday
