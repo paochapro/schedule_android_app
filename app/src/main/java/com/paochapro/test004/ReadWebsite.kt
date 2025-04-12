@@ -18,7 +18,8 @@ import java.util.GregorianCalendar
 
 fun readWebsiteAndStoreInSchedule(activity: MainActivity, login: String, password: String) {
     val builder: OkHttpClient.Builder = OkHttpClient.Builder()
-    builder.cookieJar(PersistentCookieJar(SetCookieCache(), SharedPrefsCookiePersistor(activity)))
+    val cookieJar = PersistentCookieJar(SetCookieCache(), SharedPrefsCookiePersistor(activity))
+    builder.cookieJar(cookieJar)
     val client: OkHttpClient = builder.build()
 
     // Try to login
@@ -104,6 +105,12 @@ private class LoginCallback(private val client: OkHttpClient, private val activi
         // Get the schedule
         val schedule = GetSchedule(client, gradeUrl, fullPageWeekIndex).getSchedule()
         activity.schedule = schedule
+        println("Successfully imported schedule")
+
+        val cookieJar = (client.cookieJar as PersistentCookieJar)
+        cookieJar.clear()
+        cookieJar.clearSession()
+        println("Successfully cleared cookies")
     }
 }
 
