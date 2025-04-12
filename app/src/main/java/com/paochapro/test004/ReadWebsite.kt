@@ -40,7 +40,7 @@ fun readWebsiteAndStoreInSchedule(activity: MainActivity, login: String, passwor
     client.newCall(loginRequest).enqueue(loginCallback)
 }
 
-private fun getDocFromUrl(client: OkHttpClient, url: String) : Document {
+private fun docFromUrl(client: OkHttpClient, url: String) : Document {
     val request = Request.Builder()
         .url(url)
         .build()
@@ -50,10 +50,19 @@ private fun getDocFromUrl(client: OkHttpClient, url: String) : Document {
     return Jsoup.parse(response.body?.string() ?: "")
 }
 
-private fun getUrlWithWeek(gradeUrl: String, weekIndex: Int) : String {
+private fun getGradeUrlWithWeek(gradeUrl: String, weekIndex: Int) : String {
     val year = GregorianCalendar().get(Calendar.YEAR)
     val tail = "&Year=$year&Week=$weekIndex&log=False"
     return gradeUrl + tail
+}
+
+// Does schedule on this page have all lessons from monday to friday?
+private fun isPageFull(doc: Document) : Boolean {
+    val diariesDiv = doc.find { e -> e.nameIs("div") && e.className() == "diaries" }
+    val diaryNoLessonCount = diariesDiv?.count { e -> e.className() == "diary__nolesson" } ?: 0
+
+    //If all days doesn't have any lessons (have diary__nolesson element), page is considered not full
+    return diaryNoLessonCount != 6
 }
 
 private class LoginCallback(private val client: OkHttpClient, private val activity: MainActivity) : Callback {
@@ -94,16 +103,66 @@ private class LoginCallback(private val client: OkHttpClient, private val activi
             Jsoup.parse(diariesResp.body?.string() ?: ""),
             "10А" )
 
-        // Get full page (in case of holidays we might need to check for previous weeks)
-        val fullPageWeekIndex = GetFullPage(client, gradeUrl).getFullPageWeekIndex()
 
-        if(fullPageWeekIndex == null) {
-            println("FullPageWeekIndex has not been found (GetFullPage.getFullPageWeekIndex() returned null)")
-            return
+        //Get startWeekIndex
+        val getFullPage = GetFullPage(client, gradeUrl)
+
+        var startWeekIndex = GregorianCalendar().get(Calendar.WEEK_OF_YEAR)
+
+        val inHolidays = !getFullPage.isWeekFull(startWeekIndex)
+
+        //If today's week is not holidays, that means that either previous or next week are not holidays
+        if(!inHolidays) {
+            //If previous week is holidays
+            //That means the next week is full
+            if(!getFullPage.isWeekFull(startWeekIndex - 1)) {
+                startWeekIndex += 1
+            }
+        }
+        //If today's week is holidays
+        //That means that we should find the first full week going backwards (going from week 15 to 14 to 13)
+        //And the previous week of that first week is almost guaranteed to be full
+        else {
+            //We subtract, cause we know that the current week is holidays
+            print("Current week $startWeekIndex is not full. ")
+
+            startWeekIndex -= 1
+
+            println("Starting to check which week is full starting from week index $startWeekIndex")
+            val fullPageWeekIndex = getFullPage.getFullWeek(startWeekIndex)
+
+            if(fullPageWeekIndex == -1) {
+                println("FullPageWeekIndex has not been found (GetFullPage.getFullWeek() returned null)")
+                return
+            }
+
+            startWeekIndex = fullPageWeekIndex
+        }
+
+        // In the end startWeekIndex is full week
+        // And the previous week of startWeekIndex is full too
+        // So the last thing there is to do
+        // Is to understand which one is even and which one is uneven
+        println("StartWeekIndex: $startWeekIndex")
+
+        val weekIndexEven: Int
+        val weekIndexUneven: Int
+
+        if(startWeekIndex % 2 == 0) {
+            weekIndexEven = startWeekIndex
+            weekIndexUneven = startWeekIndex - 1
+        }
+        else {
+            weekIndexEven = startWeekIndex - 1
+            weekIndexUneven = startWeekIndex
         }
 
         // Get the schedule
-        val schedule = GetSchedule(client, gradeUrl, fullPageWeekIndex).getSchedule()
+        val schedule = GetSchedule(client, gradeUrl,
+            weekIndexEven = weekIndexEven,
+            weekIndexUneven = weekIndexUneven)
+            .getSchedule()
+
         activity.schedule = schedule
         println("Successfully imported schedule")
 
@@ -118,47 +177,24 @@ private class GetFullPage(
     private val client: OkHttpClient,
     private val gradeUrl: String
 ) {
-    // Does schedule on this page have all lessons from monday to friday?
-    private fun isPageFull(doc: Document) : Boolean {
-        val diariesDiv = doc.find { e -> e.nameIs("div") && e.className() == "diaries" }
-        val diaryNoLessonCount = diariesDiv?.count { e -> e.className() == "diary__nolesson" } ?: 0
-
-        //If all days doesn't have any lessons (have diary__nolesson element), page is considered not full
-        return diaryNoLessonCount != 6
+    fun isWeekFull(weekIndex: Int) : Boolean {
+        val weekUrl = getGradeUrlWithWeek(gradeUrl, weekIndex)
+        return isPageFull(docFromUrl(client, weekUrl))
     }
 
-    private fun checkWeek(weekIndex: Int) : Int {
+    fun getFullWeek(weekIndex: Int) : Int {
         if(weekIndex <= 2)
             return -1
 
-        val weekUrl = getUrlWithWeek(gradeUrl, weekIndex)
+        val isWeekFull = isWeekFull(weekIndex)
 
-        val weekRequest: Request = Request.Builder()
-            .url(weekUrl)
-            .build()
-
-        val weekResp: Response
-        runBlocking { weekResp = client.newCall(weekRequest).execute() }
-
-        if(!isPageFull(Jsoup.parse(weekResp.body?.string() ?: ""))) {
-            println("Week $weekUrl is not full!")
-            return checkWeek(weekIndex - 1)
+        if(!isWeekFull) {
+            println("Week $weekIndex is not full!")
+            return getFullWeek(weekIndex - 1)
         }
 
-        println("Week $weekUrl is full!")
+        println("Week $weekIndex is full!")
         return weekIndex
-    }
-
-    fun getFullPageWeekIndex() : Int? {
-        val thisWeekIndex = GregorianCalendar().get(Calendar.WEEK_OF_YEAR)
-
-        println("Starting to check which week is full starting from week index $thisWeekIndex")
-        val fullPageWeekIndex = checkWeek(thisWeekIndex)
-
-        if(fullPageWeekIndex == -1)
-            return null
-
-        return fullPageWeekIndex
     }
 }
 
@@ -182,25 +218,13 @@ private class GetGradeUrl {
 private class GetSchedule(
     private val client: OkHttpClient,
     private val gradeUrl: String,
-    private val startWeekIndex: Int) {
+    private val weekIndexEven: Int,
+    private val weekIndexUneven: Int) {
 
     fun getSchedule() : Schedule {
-        // Get indexes for even and uneven weeks
-        val weekIndexEven: Int
-        val weekIndexUneven: Int
-
-        if(startWeekIndex % 2 == 0) {
-            weekIndexEven = startWeekIndex
-            weekIndexUneven = startWeekIndex - 1
-        }
-        else {
-            weekIndexEven = startWeekIndex - 1
-            weekIndexUneven = startWeekIndex
-        }
-
         // Getting urls and making a request for each url
-        val scheduleUrlEven = getUrlWithWeek(gradeUrl, weekIndexEven)
-        val scheduleUrlUneven = getUrlWithWeek(gradeUrl, weekIndexUneven)
+        val scheduleUrlEven = getGradeUrlWithWeek(gradeUrl, weekIndexEven)
+        val scheduleUrlUneven = getGradeUrlWithWeek(gradeUrl, weekIndexUneven)
 
         println("ScheduleUrlEven: $scheduleUrlEven")
         println("ScheduleUrlUneven: $scheduleUrlUneven")
@@ -256,9 +280,7 @@ private class GetSchedule(
                 //We don't need stuff like "Информатика: Практическая работа"
                 //Or "Физика: Лабораторная работа"
                 if(subject.contains(':')) {
-                    println("Before: $subject")
                     subject = subject.split(":")[0]
-                    println("After: $subject")
                 }
 
                 //Leave only the first word
