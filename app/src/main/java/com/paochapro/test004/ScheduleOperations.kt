@@ -1,119 +1,16 @@
 package com.paochapro.test004
 
-import android.content.Context
-import com.beust.klaxon.Klaxon
-import java.io.File
 import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.Random
 
-data class FileLesson(val lesson: Lesson?)
-data class FileDay(val lessons: Array<FileLesson>, val lessonTimeMinutes: Int)
-
-//File I/O
-fun readSchedule(
-    context: Context,
-    fileName: String,
-    defaultValue: Array<Day>,
-    shouldPrint: Boolean = true)
-: Array<Day>
-{
-    val result: Array<Day> = defaultValue
-
-    //Read the file
-    val file = File(context.filesDir, fileName)
-
-    if(!file.exists()) {
-        println("No file to read")
-        return defaultValue
-    }
-
-    //Get FileDay array
-    val json = file.readText()
-    val read: List<FileDay>?
-
-    try {
-        read = Klaxon().parseArray<FileDay>(json) //Quite slow!
-
-        if(shouldPrint)
-            println("Read: $json")
-    }
-    catch(ex: Exception) {
-        println("Failed reading the schedule. Exception: " + ex.message)
-        return defaultValue
-    }
-
-    if(read == null) {
-        println("Failed reading the schedule, it is probably empty")
-        return defaultValue
-    }
-
-    for(d in 0 until DAY_COUNT) {
-        val readFileDay = read.getOrNull(d)
-
-        if(readFileDay == null) {
-            println("Failed reading the schedule, file doesn't have enough days")
-            return defaultValue
-        }
-
-        val resultLessons: Array<Lesson?> = arrayOfNulls(LESSON_COUNT)
-
-        for(l in 0 until LESSON_COUNT) {
-            val readFileLesson = readFileDay.lessons.getOrNull(l)
-
-            if(readFileLesson == null) {
-                println("Failed reading the schedule, file doesn't have enough lessons")
-                return defaultValue
-            }
-
-            resultLessons[l] = readFileLesson.lesson
-        }
-
-        result[d] = Day(resultLessons, readFileDay.lessonTimeMinutes)
-    }
-
-    return result
-}
-
-fun saveSchedule(
-    context: Context,
-    fileName: String,
-    schedule: Array<Day>,
-    shouldPrint: Boolean = true)
-{
-    //val nonNullableSchedule = schedule.filterNotNull().map { it.filterNotNull() }.map { FileDay(it) }
-
-    val fileSchedule = schedule.map {
-        FileDay( it.lessons.map { FileLesson(it) }.toTypedArray(), it.lessonTimeMinutes )
-    }
-
-    val json = Klaxon().toJsonString(fileSchedule)
-    val file = File(context.filesDir, fileName)
-
-    if(!file.exists()) {
-        if (!file.createNewFile()) {
-            println("Failed to create the schedule file when trying to save")
-            return
-        }
-    }
-
-    file.writeText(json)
-
-    if(shouldPrint)
-        println("Saved: $json")
-}
-
 //Helper functions
-fun getEmptySchedule() = Array(DAY_COUNT) { Day(arrayOfNulls(LESSON_COUNT), DEFAULT_LESSON_TIME_MINS) }
+fun createEmptyWeek() = Array(DAY_COUNT) { Day(arrayOfNulls(LESSON_COUNT), DEFAULT_LESSON_TIME_MINS) }
 
-fun getScheduleFromFile(context: Context) : Array<Day> {
-    return readSchedule(context, SCHEDULE_FILE_NAME, getEmptySchedule(), shouldPrint = false)
-}
-
-fun createTemplateSchedule(addEighthLesson: Boolean, addSunday: Boolean, addSaturday: Boolean = false) : Array<Day> {
+fun createRandomWeek(addEighthLesson: Boolean, addSunday: Boolean, addSaturday: Boolean = false) : Array<Day> {
     val subjects = arrayOf("Рус", "Инф", "Алгб", "Физ", "Био")
 
-    val schedule = getEmptySchedule()
+    val week = createEmptyWeek()
 
     fun getRandLesson(lessonIndex: Int) : Lesson {
         val subjectIndex = Random().nextInt(subjects.size)
@@ -138,21 +35,39 @@ fun createTemplateSchedule(addEighthLesson: Boolean, addSunday: Boolean, addSatu
     }
 
     for(dayIndex in 0 until DAY_COUNT - 2) {
-        schedule[dayIndex] = getRandDay(dayIndex)
+        week[dayIndex] = getRandDay(dayIndex)
     }
 
     if(addSunday)
-        schedule[6] = getRandDay(6)
+        week[6] = getRandDay(6)
 
     if(addSaturday)
-        schedule[5] = getRandDay(5)
+        week[5] = getRandDay(5)
 
-    return schedule
+    return week
 }
 
-fun printSchedule(schedule: Array<Day>) {
+fun createEmptySchedule() = Schedule(createEmptyWeek(), createEmptyWeek())
+
+fun createRandomSchedule(
+    addEighthLesson: Boolean = false,
+    addSunday: Boolean = false,
+    addSaturday: Boolean = false) : Schedule {
+    return Schedule(
+        createRandomWeek(addEighthLesson, addSunday, addSaturday),
+        createRandomWeek(addEighthLesson, addSunday, addSaturday)
+    )
+}
+
+fun printSchedule(schedule: Schedule) {
     println("[Schedule]")
-    schedule.forEachIndexed { di, d ->
+    printWeek(schedule.weekEven, "[WeekEven]")
+    printWeek(schedule.weekUneven, "[WeekUneven]")
+}
+
+fun printWeek(week: Array<Day>, startMessage: String) {
+    println(startMessage)
+    week.forEachIndexed { di, d ->
         println("-- Day $di [Minutes:${d.lessonTimeMinutes}] --")
 
         d.lessons.forEachIndexed { li, l ->
@@ -175,14 +90,13 @@ fun printSchedule(schedule: Array<Day>) {
  *
  * Example: 8:00-8:45 Maths 204
  */
-fun generateWidgetString(schedule: Array<Day>) : String? {
+fun generateWidgetString(schedule: Schedule) : String? {
     var currentLesson: Lesson? = null
     var lessonLength: Int = 1
 
     //Getting current lesson and its length
     val time = GregorianCalendar()
-    val dayOfWeek = calendarDayToDayIndex(time.get(Calendar.DAY_OF_WEEK))
-    val day = schedule.getOrNull(dayOfWeek)
+    val day = schedule.getCurrentDay(time)
 
     if(day != null) {
         currentLesson = getCurrentLesson(day, time)
@@ -200,14 +114,13 @@ fun generateWidgetString(schedule: Array<Day>) : String? {
     return null
 }
 
-fun getCurrentLessonFromSchedule(schedule: Array<Day>) : Lesson? {
+fun getCurrentLessonFromSchedule(schedule: Schedule) : Lesson? {
     var result: Lesson? = null
     var lessonLength: Int = 1
 
     //Getting current lesson and its length
     val time = GregorianCalendar()
-    val dayOfWeek = calendarDayToDayIndex(time.get(Calendar.DAY_OF_WEEK))
-    val day = schedule.getOrNull(dayOfWeek)
+    val day = schedule.getCurrentDay(time)
 
     if(day != null) {
         result = getCurrentLesson(day, time)
@@ -252,7 +165,9 @@ fun getLessonEndCalendar(lesson: Lesson, lessonTimeMinutes: Int): GregorianCalen
     return calendar
 }
 
-fun getLessonEndString(lesson: Lesson, lessonTimeMinutes: Int) = utilCalendarToString(getLessonEndCalendar(lesson, lessonTimeMinutes))
+fun getLessonEndString(lesson: Lesson, lessonTimeMinutes: Int) = utilCalendarToString(
+    getLessonEndCalendar(lesson, lessonTimeMinutes)
+)
 
 fun calendarDayToDayIndex(day: Int) =
     when(day) {

@@ -1,13 +1,22 @@
-package com.paochapro.test004
+package com.paochapro.test004.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,14 +27,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.toLowerCase
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
+import com.paochapro.test004.DEFAULT_LESSON_TIME_MINS
+import com.paochapro.test004.Day
+import com.paochapro.test004.LESSON_COUNT
+import com.paochapro.test004.Lesson
+import com.paochapro.test004.MainActivity
+import com.paochapro.test004.composables.DayName
+import com.paochapro.test004.composables.DayPicker
+import com.paochapro.test004.composables.NonlazyGrid
+import com.paochapro.test004.composables.TextFieldStylized
+import com.paochapro.test004.composables.ValuePicker
+import java.util.Locale
+import kotlin.math.exp
 import kotlin.math.floor
 
 //TODO: Sometimes saving to schedule doesn't work!
 
-fun getTextFieldDataArray(dayIndex: Int, activity: MainActivity): List<List<String>> {
-    val day = activity.schedule.getOrNull(dayIndex)
+fun getTextFieldDataArray(week: Array<Day>, dayIndex: Int): List<List<String>> {
+    val day = week.getOrNull(dayIndex)
 
     if(day == null) {
         println("Couldn't find day! Returning  empty mutable list")
@@ -41,8 +63,8 @@ fun getTextFieldDataArray(dayIndex: Int, activity: MainActivity): List<List<Stri
     }
 }
 
-fun getLessonTimeMinutes(dayIndex: Int, activity: MainActivity): String {
-    val day = activity.schedule.getOrNull(dayIndex)
+fun getLessonTimeMinutes(week: Array<Day>, dayIndex: Int): String {
+    val day = week.getOrNull(dayIndex)
 
     if(day != null)
         return day.lessonTimeMinutes.toString()
@@ -52,17 +74,28 @@ fun getLessonTimeMinutes(dayIndex: Int, activity: MainActivity): String {
 
 @Composable
 fun ConfigureLesson(activity: MainActivity) {
+    //Week
+    val weekValues = arrayOf("Чётная", "Нечётная")
+    val configureWeek = remember { mutableStateOf(weekValues[0]) }
+
+    //Get schedule to work with, based on chosen week
+    val week =
+        if(configureWeek.value == weekValues[0])
+            activity.schedule.weekEven
+        else
+            activity.schedule.weekUneven
+
     //Day
     val configureDay = remember { mutableStateOf(DayName.Monday) }
     val configureDayIndex = configureDay.value.ordinal
 
     //Pure data
-    val lessonTimeMinutes = remember(configureDayIndex) {
-        mutableStateOf(getLessonTimeMinutes(configureDayIndex, activity))
+    val lessonTimeMinutes = remember(configureDayIndex, week) {
+        mutableStateOf(getLessonTimeMinutes(week, configureDayIndex))
     }
 
-    val rowDataArray = remember(configureDayIndex) {
-        getTextFieldDataArray(configureDayIndex, activity).map {
+    val rowDataArray = remember(configureDayIndex, week) {
+        getTextFieldDataArray(week, configureDayIndex).map {
             mutableStateListOf(it[0], it[1], it[2])
         }
     }
@@ -71,6 +104,11 @@ fun ConfigureLesson(activity: MainActivity) {
     val isTimeIncorrectArray = remember { mutableStateListOf(false,false,false,false,false,false,false,false,
         /*This one is for lesson length text-field. Index 8*/ false) }
 
+    //Week picker
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("Неделя: ", color = MaterialTheme.colorScheme.onSurface)
+        ValuePicker(weekValues, configureWeek.value) { configureWeek.value = it }
+    }
     //Day picker
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text("День: ", color = MaterialTheme.colorScheme.onSurface)
@@ -109,6 +147,17 @@ fun ConfigureLesson(activity: MainActivity) {
     fun SetupItem(row: Int, column: Int) {
         //Column names
         if (row == 0) {
+            //Time header
+            if(column == 2) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(top[column], color = MaterialTheme.colorScheme.onSurface, modifier = columnPadding)
+                    TimeSettings(activity, week, configureDay.value)
+                }
+
+                return
+            }
+
+            //Title or cabinet
             Text(top[column], color = MaterialTheme.colorScheme.onSurface, modifier = columnPadding)
             return
         }
@@ -155,14 +204,14 @@ fun ConfigureLesson(activity: MainActivity) {
         }
 
         //Max characters for subject, time and cabinet text fields
-        val maxCharacters = arrayOf(12, 5, 3)
+        val maxCharacters = arrayOf(99, 5, 3)
 
         TextFieldStylized(text, onValueChanged =  {
                 //Wont use range, because maxCharacters could be Int.MAX_VALUE which would create very large range
                 if(it.length <= maxCharacters[index])
                     rowData[index] = it
             },
-            modifier = columnPadding,
+            modifier = columnPadding.fillMaxHeight(),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             isError = isError
         )
@@ -184,7 +233,7 @@ fun ConfigureLesson(activity: MainActivity) {
         itemCount = (LESSON_COUNT + 1) * 4, //header and lessons for each column
         columnWeights = weights,
         rowModifier = rowModifier,
-        modifier = Modifier.padding(horizontal = 4.dp)
+        //modifier = Modifier.padding(horizontal = 4.dp)
     ) {
         val column = it % 4
         val row = floor(it.toFloat() / 4f).toInt()
@@ -210,7 +259,7 @@ fun ConfigureLesson(activity: MainActivity) {
     //Save button
     //TODO: check array oob
     fun getButtonSave(): () -> Unit = {
-        val day = activity.schedule.getOrNull(configureDayIndex)
+        val day = week.getOrNull(configureDayIndex)
 
         if(day == null) {
             println("Couldn't find day!")
@@ -258,10 +307,55 @@ fun ConfigureLesson(activity: MainActivity) {
     }
 }
 
-@Composable fun ErrorText(text: String) {
+@Composable
+fun ErrorText(text: String) {
     Text(text = text,
         color = Color(0xFFF33737),
         modifier = Modifier.padding(horizontal = 8.dp),
         fontSize = 2.em
     )
+}
+
+@Composable
+fun TimeSettings(activity: MainActivity, week: Array<Day>, dayPicked: DayName) {
+    val isMenuExpanded = remember { mutableStateOf(false) }
+
+    Column {
+        IconButton(
+            onClick = { isMenuExpanded.value = true }, modifier = Modifier
+                .width(Icons.Filled.Settings.defaultWidth)
+                .height(Icons.Filled.Settings.defaultHeight)
+        ) {
+            Icon(
+                Icons.Filled.Settings,
+                contentDescription = "Опции для времени",
+                tint = Color.White
+            )
+        }
+        DropdownMenu(
+            expanded = isMenuExpanded.value,
+            onDismissRequest = { isMenuExpanded.value = false })
+        {
+            val nameExceptions = arrayOf("", "", "среду", "", "пятницу", "субботу", "")
+
+            for(dayName in DayName.entries) {
+                val resultDayName =
+                    if(nameExceptions[dayName.ordinal] == "")
+                        dayName.rusTranslation.lowercase(Locale.ROOT)
+                    else
+                        nameExceptions[dayName.ordinal]
+
+                val text = "Скопировать в $resultDayName"
+
+                DropdownMenuItem(
+                    text = { Text(text) },
+                    onClick = {
+                        activity.copyTime(week, fromDayIndex = dayPicked.ordinal, toDayIndex = dayName.ordinal)
+                        isMenuExpanded.value = false
+                    },
+                    enabled = dayPicked != dayName
+                )
+            }
+        }
+    }
 }

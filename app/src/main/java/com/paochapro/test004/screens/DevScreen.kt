@@ -1,4 +1,4 @@
-package com.paochapro.test004
+package com.paochapro.test004.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
@@ -14,6 +14,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import com.paochapro.test004.Day
+import com.paochapro.test004.Lesson
+import com.paochapro.test004.MainActivity
+import com.paochapro.test004.composables.DayName
+import com.paochapro.test004.composables.DayPicker
+import com.paochapro.test004.composables.TextCheckbox
+import com.paochapro.test004.createEmptySchedule
+import com.paochapro.test004.createRandomSchedule
+import com.paochapro.test004.dayIndexToCalendarDay
+import com.paochapro.test004.getCurrentLesson
+import com.paochapro.test004.getLessonEndString
+import com.paochapro.test004.readWebsiteAndStoreInSchedule
+import com.paochapro.test004.utilCalendarToString
+import com.paochapro.test004.utilStringToCalendar
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -66,8 +81,7 @@ fun DevScreen(activity: MainActivity) {
         val resultTime = customTime.value
         resultTime.set(Calendar.DAY_OF_WEEK, dayIndexToCalendarDay(customDay.value.ordinal))
 
-        val dayOfWeek = calendarDayToDayIndex(resultTime.get(Calendar.DAY_OF_WEEK))
-        val day = activity.schedule.getOrNull(dayOfWeek)
+        val day = activity.schedule.getCurrentDay(resultTime)
 
         timeString.value = utilCalendarToString(customTime.value)
 
@@ -85,8 +99,7 @@ fun DevScreen(activity: MainActivity) {
 
     suspend fun updateLessonStatus() {
         val today = GregorianCalendar()
-        val dayOfWeek = calendarDayToDayIndex(today.get(Calendar.DAY_OF_WEEK))
-        val day = activity.schedule.getOrNull(dayOfWeek)
+        val day = activity.schedule.getCurrentDay(today)
 
         timeString.value = utilCalendarToString(today)
 
@@ -138,8 +151,26 @@ fun DevScreen(activity: MainActivity) {
     val addSaturday = remember { mutableStateOf(false) }
     val addSunday = remember { mutableStateOf(false) }
 
-    Button(onClick = { activity.devCreateTemplateSchedule(addEigthLesson.value, addSunday.value, addSaturday.value) }) { Text("Сгенерировать расписание") }
-    Button(onClick = { activity.clearSchedule() }) { Text("Отчистить расписание") }
+    Button(onClick = {
+        activity.schedule = createRandomSchedule(
+            addEighthLesson = addEigthLesson.value,
+            addSaturday = addSaturday.value,
+            addSunday = addSunday.value,
+        )
+        activity.onScheduleUpdate()
+    } )
+    {
+        Text("Сгенерировать расписание")
+    }
+
+    Button(onClick =
+    {
+        activity.schedule = createEmptySchedule()
+        activity.onScheduleUpdate()
+    })
+    {
+        Text("Отчистить расписание")
+    }
 
     TextCheckbox("Добавить 8ой урок", addEigthLesson.value, { x -> addEigthLesson.value = x } )
     TextCheckbox("Добавить субботу", addSaturday.value, { x -> addSaturday.value = x } )

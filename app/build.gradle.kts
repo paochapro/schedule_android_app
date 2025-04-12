@@ -51,7 +51,10 @@ android {
 }
 
 dependencies {
-    implementation("com.beust:klaxon:5.5")
+    implementation("com.github.franmontiel:PersistentCookieJar:v1.0.1") //persisant cookies between web requests
+    implementation("com.squareup.okhttp3:okhttp:4.12.0") //web requests
+    implementation("com.beust:klaxon:5.5") //json
+    implementation("org.jsoup:jsoup:1.19.1") //html parser
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

@@ -1,4 +1,4 @@
-package com.paochapro.test004
+package com.paochapro.test004.composables
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row

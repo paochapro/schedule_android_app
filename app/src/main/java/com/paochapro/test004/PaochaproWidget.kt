@@ -1,20 +1,16 @@
 package com.paochapro.test004
 
 import android.app.PendingIntent
-import android.app.Service
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT
 import android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH
-import android.appwidget.AppWidgetManager.OPTION_APPWIDGET_SIZES
 import android.appwidget.AppWidgetProvider
-import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.os.IBinder
 import android.widget.RemoteViews
-import androidx.compose.ui.unit.dp
+import com.paochapro.test004.schedule.readSchedule
 
 /**
  * Implementation of App Widget functionality.
@@ -75,9 +71,9 @@ internal fun updateWidgetContents(
     appWidgetManager: AppWidgetManager,
     appWidgetId: Int
 ) {
-    println("Update widget contents")
+    //println("Update widget contents")
 
-    val widgetText = generateWidgetString(getScheduleFromFile(context))
+    val widgetText = generateWidgetString(readSchedule(context, SCHEDULE_FILE_NAME, shouldPrint = false))
 
     // Construct the RemoteViews object
     val info = appWidgetManager.getAppWidgetOptions(appWidgetId)
