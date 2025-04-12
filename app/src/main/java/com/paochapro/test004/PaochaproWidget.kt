@@ -73,7 +73,10 @@ internal fun updateWidgetContents(
 ) {
     //println("Update widget contents")
 
-    val widgetText = generateWidgetString(readSchedule(context, SCHEDULE_FILE_NAME, shouldPrint = false))
+    val schedule = readSchedule(context, SCHEDULE_FILE_NAME, shouldPrint = false)
+    val currentLesson = getCurrentLessonFromSchedule(schedule)
+
+    val timeStr = if(currentLesson != null) "${currentLesson.startTime}-${getLessonEnd(schedule, currentLesson)}" else ""
 
     // Construct the RemoteViews object
     val info = appWidgetManager.getAppWidgetOptions(appWidgetId)
@@ -89,21 +92,25 @@ internal fun updateWidgetContents(
         setOnClickPendingIntent(R.id.main_text, pendingIntent)
     }
 
+    val normalWidgetText = if(currentLesson != null)
+        if(currentLesson.cabinet != -1)
+            "${currentLesson.subject} ${currentLesson.cabinet} $timeStr"
+        else
+            "${currentLesson.subject} $timeStr"
+    else
+        WIDGET_TEXT_LESSON_WASNT_FOUND
+
     //Updating according to layout
     when(layout) {
-        R.layout.paochapro_widget -> views.setTextViewText(R.id.main_text, widgetText ?: WIDGET_TEXT_LESSON_WASNT_FOUND)
+        R.layout.paochapro_widget -> views.setTextViewText(R.id.main_text, normalWidgetText)
         R.layout.paochapro_widget_2x1 -> {
-            var subjectAndCabinet = WIDGET_TEXT_LESSON_WASNT_FOUND
-            var time = ""
-
-            if(widgetText != null) {
-                val strings = widgetText.split(' ')
-                subjectAndCabinet = "${strings[0]} ${strings[1]}"
-                time = strings[2]
-            }
+            val subjectAndCabinet = if(currentLesson != null)
+                "${currentLesson.subject} ${currentLesson.cabinet}"
+            else
+                WIDGET_TEXT_LESSON_WASNT_FOUND
 
             views.setTextViewText(R.id.subject_cabinet, subjectAndCabinet)
-            views.setTextViewText(R.id.time, time)
+            views.setTextViewText(R.id.time, timeStr)
         }
         R.layout.paochapro_widget_1x1 -> {
             var subject = WIDGET_TEXT_LESSON_WASNT_FOUND
@@ -111,13 +118,12 @@ internal fun updateWidgetContents(
             var time_end = ""
             var cabinet = ""
 
-            if(widgetText != null) {
-                val strings = widgetText.split(' ')
-                subject = if (strings[0].length >= 8) strings[0].substring(0,6) + '…' else strings[0]
-                cabinet = strings[1]
-                val timeNumbers = strings[2].split('-')
-                time_start = timeNumbers[0]
-                time_end = timeNumbers[1]
+            if(currentLesson != null) {
+                subject = currentLesson.subject
+                time_start = timeStr.split('-')[0]
+                time_end = timeStr.split('-')[1]
+                //'-' means no cabinet
+                cabinet = if(currentLesson.cabinet != -1) "${currentLesson.cabinet}" else "-"
             }
 
             views.setTextViewText(R.id.subject_1x1, subject)

@@ -108,7 +108,11 @@ fun generateWidgetString(schedule: Schedule) : String? {
 
     if(currentLesson != null) {
         val end = getLessonEndString(currentLesson, lessonLength)
-        return "${currentLesson.subject} ${currentLesson.cabinet} ${currentLesson.startTime}-${end}"
+
+        return if(currentLesson.cabinet != -1)
+            "${currentLesson.subject} ${currentLesson.cabinet} ${currentLesson.startTime}-${end}"
+        else
+            "${currentLesson.subject} ${currentLesson.startTime}-${end}"
     }
 
     return null
@@ -132,6 +136,24 @@ fun getCurrentLessonFromSchedule(schedule: Schedule) : Lesson? {
 
     return result
 }
+
+fun getLessonEnd(schedule: Schedule, lesson: Lesson) : String {
+    var lessonLength: Int = 1
+
+    //Getting current lesson and its length
+    val time = GregorianCalendar()
+    val day = schedule.getCurrentDay(time)
+
+    if(day != null) {
+        lessonLength = day.lessonTimeMinutes
+    }
+    else {
+        println("Failed to get current day")
+    }
+
+    return getLessonEndString(lesson, lessonLength)
+}
+
 
 /**Returns current lesson (or null) from [day] based on what [time] is right now.*/
 fun getCurrentLesson(day: Day, time: GregorianCalendar): Lesson? {

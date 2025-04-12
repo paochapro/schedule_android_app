@@ -103,13 +103,22 @@ fun MainScreen(activity: MainActivity, modifier: Modifier) {
 
     if(generatedString != null) {
         val lessonStrings = generatedString.split(' ')
-        if(lessonStrings.size >= 3) {
+        centerTexts.clear()
+
+        if(lessonStrings.size == 3) {
             val lesson = lessonStrings[0]
             val cabinet = lessonStrings[1]
             val time = lessonStrings[2]
 
-            centerTexts.clear()
             centerTexts.add("$lesson $cabinet")
+            centerTexts.add(time)
+        }
+
+        if(lessonStrings.size == 2) {
+            val lesson = lessonStrings[0]
+            val time = lessonStrings[1]
+
+            centerTexts.add(lesson)
             centerTexts.add(time)
         }
     }

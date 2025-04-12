@@ -27,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.toLowerCase
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import com.paochapro.test004.DEFAULT_LESSON_TIME_MINS
@@ -41,7 +40,6 @@ import com.paochapro.test004.composables.NonlazyGrid
 import com.paochapro.test004.composables.TextFieldStylized
 import com.paochapro.test004.composables.ValuePicker
 import java.util.Locale
-import kotlin.math.exp
 import kotlin.math.floor
 
 //TODO: Sometimes saving to schedule doesn't work!
@@ -57,7 +55,7 @@ fun getTextFieldDataArray(week: Array<Day>, dayIndex: Int): List<List<String>> {
     return List(LESSON_COUNT) {
         val lesson: Lesson? = day.lessons[it]
         if(lesson != null)
-            listOf(lesson.subject, lesson.startTime, "${lesson.cabinet}")
+            listOf(lesson.subject, lesson.startTime, if(lesson.cabinet != -1) "${lesson.cabinet}" else "")
         else
             listOf("", "", "")
     }
@@ -240,17 +238,21 @@ fun ConfigureLesson(activity: MainActivity) {
         SetupItem(row, column)
     }
 
-    //Check if every row is either fully filled or not filled at all. Then block save button if needed
+    //Check if every row is either fully filled or not filled at all (not including cabinet).
+    //Then block save button if needed
     //Basically, block button if some row is partially filled
     var isSomeRowIsPartiallyFilled = false
 
     for(i in 0..<LESSON_COUNT) {
         val rowData = rowDataArray[i]
 
-        if(rowData[0] == "" && rowData[1] == "" && rowData[2] == "")
+        //If all are empty, its fine
+        if (rowData[0] == "" && rowData[1] == "" && rowData[2] == "")
             continue
 
-        if(rowData[0] != "" && rowData[1] != "" && rowData[2] != "")
+        //If some row is not empty (subject or/and lesson or/and cabinet)
+        //Check if necessary components, subject and time, are present
+        if (rowData[0] != "" && rowData[1] != "")
             continue
 
         isSomeRowIsPartiallyFilled = true
@@ -277,12 +279,13 @@ fun ConfigureLesson(activity: MainActivity) {
             for(n in 0..< LESSON_COUNT) {
                 val row = rowDataArray.getOrElse(n) { listOf("","","") }
 
-                if(row[0] == "" || row[1] == "" || row[2] == "") {
+                //If time or/and subject are empty, don't save the lesson
+                if(row[0] == "" || row[1] == "") {
                     day.lessons[n] = null
                     continue
                 }
 
-                day.lessons[n] = Lesson(row[1], row[0], row[2].toInt())
+                day.lessons[n] = Lesson(row[1], row[0], if(row[2] != "") row[2].toInt() else -1)
             }
         }
 
