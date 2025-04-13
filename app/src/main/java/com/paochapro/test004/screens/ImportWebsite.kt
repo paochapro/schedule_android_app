@@ -10,11 +10,15 @@ import androidx.compose.runtime.remember
 import com.paochapro.test004.MainActivity
 import com.paochapro.test004.readWebsiteAndStoreInSchedule
 
+//Dont commit these values!
+private const val LOGIN_OVERRIDE = ""
+private const val PASSWORD_OVERRIDE = ""
+
 @Composable
 fun ImportWebsiteScreen(activity: MainActivity)
 {
-    val login = remember { mutableStateOf("") }
-    val password = remember { mutableStateOf("") }
+    val login = remember { mutableStateOf(LOGIN_OVERRIDE) }
+    val password = remember { mutableStateOf(PASSWORD_OVERRIDE) }
 
     Row {
         Text("Логин:")

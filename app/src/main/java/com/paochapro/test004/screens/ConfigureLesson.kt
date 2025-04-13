@@ -78,7 +78,6 @@ fun getLessonTimeMinutes(week: Array<Day>, dayIndex: Int): String {
 fun ConfigureLesson(activity: MainActivity) {
     val dayOfWeek = calendarDayToDayIndex(GregorianCalendar().get(Calendar.DAY_OF_WEEK))
     val thisWeek = GregorianCalendar().get(Calendar.WEEK_OF_YEAR)
-    println()
 
     //Week
     val weekValues = arrayOf("Чётная", "Нечётная")

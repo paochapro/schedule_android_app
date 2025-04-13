@@ -19,7 +19,13 @@ import com.paochapro.test004.screens.Root
 //3. Математика 7. География
 //4. Математика 8. Химия
 
-//TODO: Add an option to copy times of selected day's lessons to other days
+//TODO: Scrollable text field with subjects
+
+//TODO: Dont split uneven and even weeks, make uneven lesson button
+
+//TODO: Optimize requests and retrieving html from them
+
+//TODO: Be careful with credentials
 
 const val SCHEDULE_FILE_NAME = "test2.json"
 
@@ -31,7 +37,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
 
         //schedule = readSchedule(this, SCHEDULE_FILE_NAME)
 
