@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
+import androidx.core.text.isDigitsOnly
 import com.paochapro.test004.DEFAULT_LESSON_TIME_MINS
 import com.paochapro.test004.Day
 import com.paochapro.test004.LESSON_COUNT
@@ -105,10 +106,6 @@ fun ConfigureLesson(activity: MainActivity) {
         }
     }
 
-    //Should block button
-    val isTimeIncorrectArray = remember { mutableStateListOf(false,false,false,false,false,false,false,false,
-        /*This one is for lesson length text-field. Index 8*/ false) }
-
     //Week picker
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text("Неделя: ", color = MaterialTheme.colorScheme.onSurface)
@@ -128,8 +125,6 @@ fun ConfigureLesson(activity: MainActivity) {
         isLessonLengthError = minsInt >= 60
     }
 
-    isTimeIncorrectArray[8] = isLessonLengthError
-
     //Lesson length
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 4.dp)) {
         Text("Длительность урока (мин): ", color = MaterialTheme.colorScheme.onSurface)
@@ -147,6 +142,9 @@ fun ConfigureLesson(activity: MainActivity) {
     val top = arrayOf("", "Предмет", "Время", "Кабинет")
     val weights = arrayOf(0.15f, 1.0f, 0.6f, 0.5f)
     val columnPadding = Modifier.padding(horizontal = 4.dp)
+
+    //Blocking save button
+    val isDataIncorrectArray = remember { Array(2) { MutableList(8) { false } } }
 
     @Composable
     fun SetupItem(row: Int, column: Int) {
@@ -200,12 +198,18 @@ fun ConfigureLesson(activity: MainActivity) {
             return true
         }
 
-        //If its time text field, check if time is correct. If its incorrect, then make text field glow in red
+        //If its time or cabinet text field, check if they're correct.
+        //If someone is incorrect, make text field glow in red, and block saving
         var isError = false
 
         if(column == 2) {
             isError = isTimeIncorrect()
-            isTimeIncorrectArray[row-1] = isError
+            isDataIncorrectArray[0][row-1] = isError
+        }
+
+        if(column == 3) {
+            isError = !text.isDigitsOnly()
+            isDataIncorrectArray[1][row-1] = isError
         }
 
         //Max characters for subject, time and cabinet text fields
@@ -292,7 +296,8 @@ fun ConfigureLesson(activity: MainActivity) {
                     continue
                 }
 
-                day.lessons[n] = Lesson(row[1], row[0], if(row[2] != "") row[2].toInt() else -1)
+                val cabinet = if(row[2] != "" && row[2].isDigitsOnly()) row[2].toInt() else -1
+                day.lessons[n] = Lesson(row[1], row[0], cabinet)
             }
         }
 
@@ -301,9 +306,9 @@ fun ConfigureLesson(activity: MainActivity) {
     }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
-        val correctTimeFormat = isTimeIncorrectArray.all {i-> i == false}
+        val correctDataFormat = isDataIncorrectArray.all { column -> column.all { !it } } && !isLessonLengthError
 
-        Button(onClick = getButtonSave(), enabled = correctTimeFormat && !isSomeRowIsPartiallyFilled) {
+        Button(onClick = getButtonSave(), enabled = correctDataFormat && !isSomeRowIsPartiallyFilled) {
             Text("Сохранить")
         }
 
@@ -311,8 +316,8 @@ fun ConfigureLesson(activity: MainActivity) {
             if (isSomeRowIsPartiallyFilled)
                 ErrorText("Данные не заполнены.")
 
-            if (!correctTimeFormat)
-                ErrorText("Неправильный формат времени.")
+            if (!correctDataFormat)
+                ErrorText("Неправильный формат данных.")
         }
     }
 }
