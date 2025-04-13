@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import com.paochapro.test004.MainActivity
+import com.paochapro.test004.composables.ErrorText
 import com.paochapro.test004.readWebsiteAndStoreInSchedule
 
 //Dont commit these values!

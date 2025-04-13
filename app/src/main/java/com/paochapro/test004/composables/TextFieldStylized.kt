@@ -16,12 +16,14 @@ fun TextFieldStylized(
     modifier: Modifier = Modifier,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onValueChanged: (String) -> Unit,
-    isError: Boolean = false
+    isError: Boolean = false,
+    enabled: Boolean = true
     ) {
     OutlinedTextField(value, onValueChanged,
         modifier = modifier,
         shape = CircleShape.copy(all = CornerSize(8.dp)),
         colors = TextFieldDefaults.colors().copy(focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
         keyboardOptions = keyboardOptions,
-        isError = isError)
+        isError = isError,
+        enabled = enabled)
 }
