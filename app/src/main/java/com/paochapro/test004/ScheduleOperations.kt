@@ -79,6 +79,10 @@ fun printWeek(week: Array<Day>, startMessage: String) {
     }
 }
 
+fun getLessonString(lesson: Lesson?): String {
+    return if(lesson != null) "Lesson: ${lesson.subject} / ${lesson.startTime} / ${lesson.cabinet}" else "null lesson"
+}
+
 //Working with lesson
 /**Returns new string for widget, based on current time.
  *

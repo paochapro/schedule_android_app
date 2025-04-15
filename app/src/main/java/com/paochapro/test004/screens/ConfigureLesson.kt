@@ -30,7 +30,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
 import androidx.core.text.isDigitsOnly
 import com.paochapro.test004.DEFAULT_LESSON_TIME_MINS
 import com.paochapro.test004.Day
@@ -116,10 +115,12 @@ fun ConfigureLesson(activity: MainActivity) {
         isDataIncorrectArray,
         isLessonLengthError,
         rowDataArray,
-        configureWeek,
         configureDayIndex,
         lessonTimeMinutes,
-        activity
+        activity,
+        configureWeek,
+        otherWeek,
+        nextWeekChosen.value
     )
 }
 
@@ -149,24 +150,43 @@ private fun BottomPanel(
     isDataIncorrectArray: Array<MutableList<Boolean>>,
     isLessonLengthError: Boolean,
     rowDataArray: List<SnapshotStateList<String>>,
-    configureWeek: Array<Day>,
     configureDayIndex: Int,
     lessonTimeMinutes: MutableState<String>,
-    activity: MainActivity
+    activity: MainActivity,
+    configureWeek: Array<Day>,
+    otherWeek: Array<Day>,
+    nextWeekChosen: Boolean,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         val correctDataFormat =
             isDataIncorrectArray.all { column -> column.all { !it } } && !isLessonLengthError
         val isSomeRowIsPartiallyFilled = isSomeRowIsPartiallyFilled(rowDataArray)
 
-        Button(
-            onClick = getButtonSave(
-                chosenWeek = configureWeek,
+        val onClick: () -> Unit
+
+        if (!nextWeekChosen) {
+
+            onClick = getButtonSaveForFirstWeek(
+                firstWeek = configureWeek,
+                nextWeek = otherWeek,
                 configureDayIndex = configureDayIndex,
                 lessonTimeMinutes = lessonTimeMinutes.value.toIntOrNull(),
                 rowDataArray = rowDataArray,
                 activity = activity
-            ),
+            )
+        } else {
+
+            onClick = saveConfigureWeek(
+                configureWeek = configureWeek,
+                configureDayIndex = configureDayIndex,
+                lessonTimeMinutes = lessonTimeMinutes.value.toIntOrNull(),
+                rowDataArray = rowDataArray,
+                activity = activity
+            )
+        }
+
+        Button(
+            onClick = onClick,
             enabled = correctDataFormat && !isSomeRowIsPartiallyFilled
         )
         {
@@ -433,15 +453,83 @@ private fun isSomeRowIsPartiallyFilled(rowDataArray: List<List<String>>) : Boole
     return false
 }
 
-private fun getButtonSave(
-    chosenWeek: Array<Day>,
+private fun getButtonSaveForFirstWeek(
+    firstWeek: Array<Day>,
+    nextWeek: Array<Day>,
     configureDayIndex: Int,
     lessonTimeMinutes: Int?,
     rowDataArray: List<List<String>>,
     activity: MainActivity
 ): () -> Unit = {
-    // Save chosen week
-    val day = chosenWeek.getOrNull(configureDayIndex)
+    fun firstAndNextLessonEqual(first: Lesson?, next: Lesson?) : Boolean {
+        if(first == null && next == null)
+            return false
+
+        if(first != null && next != null) {
+            return first.subject == next.subject
+                    && first.cabinet == next.cabinet
+        }
+
+
+        return false
+    }
+
+    val nextDayIndeciesToOverwrite = mutableListOf<Int>()
+    val firstDay = firstWeek[configureDayIndex].lessons
+    val nextDay = nextWeek[configureDayIndex].lessons
+
+    for(lessonIndex in firstDay.indices) {
+        //If next day lesson is the same as first day lesson, or if its empty
+        //Then the lesson should be overwritten by the new one in first day
+        if(firstAndNextLessonEqual(firstDay[lessonIndex], nextDay[lessonIndex]) ||
+            nextDay[lessonIndex] == null) {
+            nextDayIndeciesToOverwrite.add(lessonIndex)
+        }
+    }
+
+    saveConfigureWeek(
+        configureWeek = firstWeek,
+        configureDayIndex,
+        lessonTimeMinutes,
+        rowDataArray,
+        activity)
+        .invoke()
+
+    //Copy lesson time minutes to other day
+    nextWeek[configureDayIndex].lessonTimeMinutes = firstWeek[configureDayIndex].lessonTimeMinutes
+
+    //Overwrite next day lessons
+    val newFirstDay = firstWeek[configureDayIndex].lessons
+
+    for(lessonIndex in nextDay.indices) {
+        if(lessonIndex in nextDayIndeciesToOverwrite) {
+            nextDay[lessonIndex] = newFirstDay[lessonIndex]
+            continue
+        }
+
+        //Copy time
+        val firstLesson = newFirstDay[lessonIndex]
+        val nextLesson = nextDay[lessonIndex]
+
+        if(nextLesson != null && firstLesson != null) {
+            nextDay[lessonIndex] = Lesson(
+                startTime = firstLesson.startTime,
+                cabinet = nextLesson.cabinet,
+                subject = nextLesson.subject)
+        }
+    }
+
+    activity.onScheduleUpdate()
+}
+
+private fun saveConfigureWeek(
+    configureWeek: Array<Day>,
+    configureDayIndex: Int,
+    lessonTimeMinutes: Int?,
+    rowDataArray: List<List<String>>,
+    activity: MainActivity
+): () -> Unit = {
+    val day = configureWeek.getOrNull(configureDayIndex)
 
     if(day == null) {
         println("Couldn't find day!")

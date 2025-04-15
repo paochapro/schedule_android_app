@@ -21,8 +21,6 @@ import com.paochapro.test004.screens.Root
 
 //TODO: Scrollable text field with subjects
 
-//TODO: Dont split uneven and even weeks, make uneven lesson button
-
 //TODO: Optimize requests and retrieving html from them
 
 //TODO: Be careful with credentials
