@@ -7,8 +7,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import com.paochapro.test004.MainActivity
 import com.paochapro.test004.R
@@ -32,11 +40,27 @@ enum class Screen {
 }
 
 @Composable
+private fun GoBack(onClick: () -> Unit) {
+//    Row(modifier = Modifier
+//        .fillMaxWidth()
+//        .background(Color.hsl(0f, 0f, 0f, 0.2f))) {
+//    }
+
+    IconButton(onClick) {
+        Icon(
+            Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Назад",
+            tint = Color.White
+        )
+    }
+}
+
+@Composable
 fun Root(activity: MainActivity) {
     val screen = remember { mutableStateOf(Screen.MainScreen) }
 
-    Test004Theme {
-        Column(modifier = Modifier.fillMaxSize()) {
+    Test004Theme(darkTheme = true, dynamicColor = false) {
+        Column(modifier = Modifier.fillMaxSize().background(color = MaterialTheme.colorScheme.background)) {
             when(screen.value) {
                 Screen.MainScreen -> {
                     MainScreen(activity, Modifier
@@ -44,7 +68,8 @@ fun Root(activity: MainActivity) {
                         .weight(1f))
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .padding(8.dp),
                     ) {
                         Button(modifier = Modifier.fillMaxWidth(), onClick = { screen.value =
                             Screen.ConfigureLesson
@@ -58,36 +83,20 @@ fun Root(activity: MainActivity) {
                     }
                 }
                 Screen.ConfigureLesson -> {
-                    Row(modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.hsl(0f, 0f, 0f, 0.2f))) {
-                        Button({screen.value = Screen.MainScreen }) {
-                            Text("Назад")
-                        }
-                    }
+                    GoBack {screen.value = Screen.MainScreen }
 
                     Column(modifier = Modifier.verticalScroll(ScrollState(0))) {
                         ConfigureLesson(activity)
                     }
                 }
                 Screen.DevScreen -> {
-                    Row(modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.hsl(0f, 0f, 0f, 0.2f))) {
-                        Button({ screen.value = Screen.MainScreen }) {
-                            Text("Назад")
-                        }
-                    }
+                    GoBack {screen.value = Screen.MainScreen }
+
                     DevScreen(activity)
                 }
                 Screen.ImportWebsiteScreen -> {
-                    Row(modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.hsl(0f, 0f, 0f, 0.2f))) {
-                        Button({ screen.value = Screen.MainScreen; activity.hasLoginFailed.value = false }) {
-                            Text("Назад")
-                        }
-                    }
+                    GoBack { screen.value = Screen.MainScreen; activity.hasLoginFailed.value = false }
+
                     ImportWebsiteScreen(activity)
                 }
             }
@@ -126,7 +135,8 @@ fun MainScreen(activity: MainActivity, modifier: Modifier) {
     val fontFamily = FontFamily(Font(R.font.jetbrains_mono))
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally) {
             for(i in centerTexts) {
                 Text(
                     i,

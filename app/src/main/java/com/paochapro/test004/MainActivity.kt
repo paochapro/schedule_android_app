@@ -5,10 +5,14 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
+import androidx.core.app.ActivityCompat
 import com.paochapro.test004.schedule.saveSchedule
 import com.paochapro.test004.screens.Root
 
@@ -41,17 +45,43 @@ class MainActivity : ComponentActivity() {
         //registerReceiver(LessonStatusUpdate(), IntentFilter(Intent.ACTION_TIME_TICK))
         //updateWidgetsAndTimeString()
 
+        try {
+            setAlarmManager()
+        }
+        catch (ex: Exception) {
+            println(ex.message)
+        }
+
         setContent { Root(this) }
     }
 
-    fun setAlarmManager() {
-        val intent = Intent(this, PaochaproWidget::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
-
+    @RequiresApi(Build.VERSION_CODES.S)
+    private fun setAlarmManager() {
+        val intent = Intent(this, TestReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
         val currentLesson = getCurrentLessonFromSchedule(schedule)
-
         val alarmManager = this.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        //alarmManager.setExact(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 20000, pendingIntent)
+
+        try {
+            if(alarmManager.canScheduleExactAlarms()) {
+                println("Have permission")
+
+                alarmManager.setExact(
+                    AlarmManager.RTC_WAKEUP,
+                    System.currentTimeMillis() + 20000, //20 seconds from now
+                    pendingIntent
+                )
+            }
+            else {
+                println("Dont have permission")
+            }
+        }
+        catch (ex: SecurityException) {
+            println("SecurityException when scheduling exact alarm: ${ex.message}")
+        }
+        catch (ex: Exception) {
+            println("Exception when scheduling exact alarm: ${ex.message}")
+        }
     }
 
     fun updateWidgetsAndTimeString() {
@@ -93,6 +123,12 @@ class MainActivity : ComponentActivity() {
                     toLessons[i] = modifiedLesson
                 }
             }
+    }
+}
+
+class TestReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+        println("Test receiver")
     }
 }
 

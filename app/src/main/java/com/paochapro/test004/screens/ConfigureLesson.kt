@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -86,10 +87,6 @@ fun ConfigureLesson(activity: MainActivity) {
         }
     }
 
-    WeekPicker(nextWeekChosen, weekStrings)
-
-    DayPickerRow(configureDay)
-
     //Lesson length
     val lessonTimeMinutes = remember(configureDayIndex, configureWeek) {
         mutableStateOf(getLessonTimeMinutes(configureWeek, configureDayIndex))
@@ -98,7 +95,11 @@ fun ConfigureLesson(activity: MainActivity) {
     val lessonTimeMinutesInt = lessonTimeMinutes.value.toIntOrNull()
     val isLessonLengthError = lessonTimeMinutesInt == null || lessonTimeMinutesInt >= 60
 
-    LessonLength(lessonTimeMinutes, nextWeekChosen, isLessonLengthError)
+    Column(Modifier.padding(horizontal = 8.dp)) {
+        WeekPicker(nextWeekChosen, weekStrings)
+        DayPickerRow(configureDay)
+        LessonLength(lessonTimeMinutes, nextWeekChosen, isLessonLengthError)
+    }
 
     val isDataIncorrectArray = remember { Array(2) { MutableList(8) { false } } }
 
@@ -157,7 +158,8 @@ private fun BottomPanel(
     otherWeek: Array<Day>,
     nextWeekChosen: Boolean,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
         val correctDataFormat =
             isDataIncorrectArray.all { column -> column.all { !it } } && !isLessonLengthError
         val isSomeRowIsPartiallyFilled = isSomeRowIsPartiallyFilled(rowDataArray)
@@ -185,20 +187,19 @@ private fun BottomPanel(
             )
         }
 
+        if (isSomeRowIsPartiallyFilled)
+            ErrorText("Данные не заполнены.")
+
+        if (!correctDataFormat)
+            ErrorText("Неправильный формат данных.")
+
         Button(
+            modifier = Modifier.fillMaxWidth(0.8f),
             onClick = onClick,
             enabled = correctDataFormat && !isSomeRowIsPartiallyFilled
         )
         {
             Text("Сохранить")
-        }
-
-        Column {
-            if (isSomeRowIsPartiallyFilled)
-                ErrorText("Данные не заполнены.")
-
-            if (!correctDataFormat)
-                ErrorText("Неправильный формат данных.")
         }
     }
 }
@@ -216,14 +217,14 @@ private fun LessonGrid(
     val weights = arrayOf(0.15f, 1.0f, 0.6f, 0.5f)
     val columnPadding = Modifier.padding(horizontal = 4.dp)
 
-    val colEven = MaterialTheme.colorScheme.surfaceContainerHigh
+    val colEven = MaterialTheme.colorScheme.surfaceContainer
     val colOdd = MaterialTheme.colorScheme.surfaceContainer
 
     val nextWeekColEven = MaterialTheme.colorScheme.primary
     val nextWeekColOdd = MaterialTheme.colorScheme.secondary
 
     val rowModifier = { i: Int ->
-        val padding = if (i == 0) 4.dp else 8.dp
+        val padding = if (i == 0) 4.dp else 4.dp
 
         Modifier
             .background(if (i % 2 == 0) colEven else colOdd)
@@ -235,7 +236,7 @@ private fun LessonGrid(
         itemCount = (LESSON_COUNT + 1) * 4, //header and lessons for each column
         columnWeights = weights,
         rowModifier = rowModifier,
-        //modifier = Modifier.padding(horizontal = 4.dp)
+        modifier = Modifier.padding(vertical = 4.dp)
     ) {
         val column = it % 4
         val row = floor(it.toFloat() / 4f).toInt()

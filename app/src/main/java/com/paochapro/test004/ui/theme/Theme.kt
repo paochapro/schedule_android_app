@@ -268,10 +268,9 @@ fun Test004Theme(
       else -> lightScheme
   }
 
-    colorScheme = darkScheme
 
   MaterialTheme(
-    colorScheme = colorScheme,
+    colorScheme = darkScheme,
     typography = Typography,
     content = content
   )
