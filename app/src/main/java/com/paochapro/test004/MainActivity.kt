@@ -133,6 +133,8 @@ class MainActivity : ComponentActivity() {
                     toLessons[i] = modifiedLesson
                 }
             }
+
+        this.onScheduleUpdate()
     }
 }
 
