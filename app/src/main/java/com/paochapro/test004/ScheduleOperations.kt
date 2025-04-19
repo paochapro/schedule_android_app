@@ -298,7 +298,10 @@ fun getLessonEnd(schedule: Schedule, lesson: Lesson) : String {
 
 /**Returns current lesson (or null) from [day] based on what [time] is right now.*/
 fun getCurrentLesson(day: Day, time: GregorianCalendar): Lesson? {
-    val currentTime = GregorianCalendar(0, 0, 0, time.get(Calendar.HOUR_OF_DAY), time.get(Calendar.MINUTE))
+    val currentTime = GregorianCalendar(0, 0, 0,
+        time.get(Calendar.HOUR_OF_DAY),
+        time.get(Calendar.MINUTE),
+        time.get(Calendar.SECOND))
 
     //Get min
     var min: Lesson? = null
@@ -308,8 +311,9 @@ fun getCurrentLesson(day: Day, time: GregorianCalendar): Lesson? {
 
         val end = getLessonEndCalendar(lesson, day.lessonTimeMinutes)
 
-        if(end.before(currentTime))
+        if(end.before(currentTime) || end == currentTime) {
             continue
+        }
 
         if(min == null)
             min = lesson
