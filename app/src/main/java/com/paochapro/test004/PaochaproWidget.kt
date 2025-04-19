@@ -10,7 +10,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.RemoteViews
-import androidx.compose.runtime.remember
 import com.paochapro.test004.schedule.readSchedule
 
 /**
@@ -18,7 +17,7 @@ import com.paochapro.test004.schedule.readSchedule
  */
 class PaochaproWidget : AppWidgetProvider() {
     companion object {
-        fun updateAll(context: Context, reasonMessage: String) {
+        fun updateAll(context: Context, reasonMessage: String ) {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager
                 .getAppWidgetIds(ComponentName(context, PaochaproWidget::class.java))

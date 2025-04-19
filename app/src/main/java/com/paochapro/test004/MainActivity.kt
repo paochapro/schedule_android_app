@@ -33,9 +33,10 @@ const val SCHEDULE_FILE_NAME = "test2.json"
 
 class MainActivity : ComponentActivity() {
     var timeString = mutableStateOf<String?>(null)
+    var hasLoginFailed = mutableStateOf(false)
     var schedule: Schedule = Schedule(createEmptyWeek(), createEmptyWeek())
 
-    var hasLoginFailed = mutableStateOf(false)
+    private var havePermissionToUseAlarmManager: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,6 +49,13 @@ class MainActivity : ComponentActivity() {
         registerReceiver(LessonStatusUpdate(), IntentFilter(Intent.ACTION_TIME_TICK))
         updateWidgetsAndTimeString("App start")
 
+        havePermissionToUseAlarmManager = isAllowedToUseAlarmManager()
+
+        if(havePermissionToUseAlarmManager)
+            println("Have permission to use alarm manager")
+        else
+            println("Dont have permission to use alarm manager")
+
         try {
             startWidgetUpdateCycle()
         }
@@ -58,33 +66,31 @@ class MainActivity : ComponentActivity() {
         setContent { Root(this) }
     }
 
-    private fun startWidgetUpdateCycle() {
-        val alarmManager = this.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
+    private fun isAllowedToUseAlarmManager() : Boolean {
         try {
-            var havePermission = false
+            val alarmManager = this.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms())
-                havePermission = true
+                return true
 
             if(Build.VERSION.SDK_INT < Build.VERSION_CODES.S)
-                havePermission = true
-
-            if(havePermission) {
-                println("Have permission. Starting Widget update cycle")
-                val intent = Intent(this, WidgetUpdateCycle::class.java)
-                intent.action = ACTION_UPDATE_WIDGET_CYCLE
-                this.sendBroadcast(intent)
-            }
-            else {
-                println("Dont have permission")
-            }
+                return true
         }
         catch (ex: SecurityException) {
             println("SecurityException when scheduling exact alarm: ${ex.message}")
         }
         catch (ex: Exception) {
             println("Exception when scheduling exact alarm: ${ex.message}")
+        }
+
+        return false
+    }
+
+    private fun startWidgetUpdateCycle() {
+        if(havePermissionToUseAlarmManager) {
+            val intent = Intent(this, WidgetUpdateCycle::class.java)
+            intent.action = ACTION_UPDATE_WIDGET_CYCLE
+            this.sendBroadcast(intent)
         }
     }
 
@@ -101,7 +107,7 @@ class MainActivity : ComponentActivity() {
     fun onScheduleUpdate() {
         saveSchedule(this, SCHEDULE_FILE_NAME, schedule, false)
         updateWidgetsAndTimeString("Schedule update")
-    //printSchedule(schedule)
+        startWidgetUpdateCycle()
     }
 
     //Time settings
@@ -140,9 +146,9 @@ class WidgetUpdateCycle : BroadcastReceiver() {
             updateCycle(context)
 
         if(intent?.action == ACTION_CANCEL_PENDING_INTENT) {
-            println("Canceling pending intent")
-            val alarmManager = context?.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            alarmManager.cancel(alarmManager.nextAlarmClock.showIntent)
+            println("Tried to cancel pending intent in AlarmManager, but canceling isnt implemented. No canceling will happen")
+//            val alarmManager = context?.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+//            alarmManager.cancel(alarmManager.nextAlarmClock.showIntent)
         }
     }
 
@@ -155,7 +161,7 @@ class WidgetUpdateCycle : BroadcastReceiver() {
         intent.action = ACTION_UPDATE_WIDGET_CYCLE
         val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
-        val secondsDiff = getCurrentLessonEndSeconds(
+        var secondsDiff = getCurrentLessonEndSeconds(
             readSchedule(
                 context,
                 SCHEDULE_FILE_NAME,
@@ -163,13 +169,17 @@ class WidgetUpdateCycle : BroadcastReceiver() {
             )
         )
 
-        alarmManager.setExact(
-            AlarmManager.RTC_WAKEUP,
-            System.currentTimeMillis() - (System.currentTimeMillis() % 1000) + secondsDiff * 1000,
-            pendingIntent
-        )
+        if(secondsDiff > 0) {
+            secondsDiff += 2 //Adding two seconds for safety
 
-        println("WidgetUpdateCycle called. Next call should be after $secondsDiff seconds")
+            alarmManager.setExact(
+                AlarmManager.RTC_WAKEUP,
+                System.currentTimeMillis() - (System.currentTimeMillis() % 1000) + secondsDiff * 1000,
+                pendingIntent
+            )
+
+            println("WidgetUpdateCycle called. Next call should be after $secondsDiff seconds")
+        }
     }
 }
 

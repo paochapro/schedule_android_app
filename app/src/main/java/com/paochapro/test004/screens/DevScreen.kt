@@ -1,5 +1,7 @@
 package com.paochapro.test004.screens
 
+import android.app.AlarmManager
+import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Button
@@ -183,7 +185,7 @@ fun DevScreen(activity: MainActivity) {
         val end = getCurrentLessonEndSeconds(activity.schedule)
 
         if(end > 0) {
-            //println("end: ${end}")
+            println("end: ${end}")
         }
         else {
             println("end is null")

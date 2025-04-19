@@ -1,13 +1,9 @@
 package com.paochapro.test004
 
 import com.paochapro.test004.composables.DayName
-import java.math.BigInteger
-import java.nio.channels.CancelledKeyException
 import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.Random
-import kotlin.math.max
-import kotlin.math.min
 
 //Helper functions
 fun getRandomLesson(schedule: Schedule) : Lesson? {
@@ -191,17 +187,46 @@ fun getNextLessonFromSchedule(schedule: Schedule) : Lesson? {
 
 //Finding lesson millis
 //Used for alarm manager to update widgets
-fun getCurrentLessonEndSeconds(schedule: Schedule) : Int {
-    val currentLesson = getCurrentLessonFromSchedule(schedule) ?: return -1
-    val today = GregorianCalendar()
-    val length = schedule.getCurrentDay(today)?.lessonTimeMinutes ?: return -1
 
-    val calendar = getLessonEndCalendar(currentLesson, length)
-    val lessonHours = calendar.get(Calendar.HOUR)
-    val lessonMins = calendar.get(Calendar.MINUTE)
-    val todayHours = today.get(Calendar.HOUR)
+fun getCurrentLessonEndSeconds(schedule: Schedule) : Int {
+    //Check if today we have a lesson
+    val today = GregorianCalendar()
+    val todayHours = today.get(Calendar.HOUR_OF_DAY)
     val todayMins = today.get(Calendar.MINUTE)
     val todaySeconds = today.get(Calendar.SECOND)
+
+    val currentLesson = getCurrentLessonFromSchedule(schedule)
+
+    //If not, start checking other days and even next week
+    if (currentLesson == null) {
+        //Get today remainder
+        val todaySecondSum = todayHours * 60 * 60 + todayMins * 60 + todaySeconds
+        val todayRemainder = 24 * 60 * 60 - todaySecondSum
+
+        val days = schedule.getCurrentWeek(today).plus(schedule.getNextWeek(today))
+
+        val currentDay = schedule.getCurrentDay(today) ?: return -1
+        val nextDayIndex = days.indexOf(currentDay) + 1
+
+        var daysCount = 0
+
+        for(i in nextDayIndex ..< days.size) {
+            val day = days[i]
+
+            if(day.lessons.filterNotNull().isNotEmpty()) {
+                break
+            }
+
+            daysCount += 1
+        }
+
+        return daysCount * 24 * 60 * 60 + todayRemainder
+    }
+
+    val length = schedule.getCurrentDay(today)?.lessonTimeMinutes ?: return -1
+    val endCalendar = getLessonEndCalendar(currentLesson, length)
+    val lessonHours = endCalendar.get(Calendar.HOUR_OF_DAY)
+    val lessonMins = endCalendar.get(Calendar.MINUTE)
 
     val hourDiff = lessonHours - todayHours
     val minDiff = lessonMins - todayMins
