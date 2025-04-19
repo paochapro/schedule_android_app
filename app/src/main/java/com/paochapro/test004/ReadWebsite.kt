@@ -16,7 +16,15 @@ import java.io.IOException
 import java.util.Calendar
 import java.util.GregorianCalendar
 
-fun readWebsiteAndStoreInSchedule(activity: MainActivity, login: String, password: String) {
+const val LOGIN_FAIL_STATUS_REQUEST_FAIL = "REQUEST_ISNT_SUCCESSFUL"
+const val LOGIN_FAIL_STATUS_RESPONSE_FAIL = "RESPONSE_ISNT_SUCCESSFUL"
+const val LOGIN_FAIL_STATUS_INCORRECT_LOGIN_OR_PASSWORD = "INCORRECT_LOGIN_OR_PASSWORD"
+const val LOGIN_FAIL_STATUS_EMPTY_SCHEDULE = "EMPTY_SCHEDULE"
+const val LOGIN_SUCCESS_STATUS = "SUCCESS"
+const val LOGIN_STATUS_WAIT = "WAIT"
+const val LOGIN_STATUS_NONE = ""
+
+fun readWebsiteAndStoreInSchedule(activity: MainActivity, login: String, password: String, grade: String) {
     val builder: OkHttpClient.Builder = OkHttpClient.Builder()
     val cookieJar = PersistentCookieJar(SetCookieCache(), SharedPrefsCookiePersistor(activity))
     builder.cookieJar(cookieJar)
@@ -36,7 +44,7 @@ fun readWebsiteAndStoreInSchedule(activity: MainActivity, login: String, passwor
         .post(body)
         .build()
 
-    val loginCallback = LoginCallback(client, activity)
+    val loginCallback = LoginCallback(client, activity, grade)
     client.newCall(loginRequest).enqueue(loginCallback)
 }
 
@@ -65,14 +73,20 @@ private fun isPageFull(doc: Document) : Boolean {
     return diaryNoLessonCount != 6
 }
 
-private class LoginCallback(private val client: OkHttpClient, private val activity: MainActivity) : Callback {
+private class LoginCallback(
+    private val client: OkHttpClient,
+    private val activity: MainActivity,
+    private val grade: String)
+    : Callback {
     override fun onFailure(call: Call, e: IOException) {
+        activity.hasLoginFailedMsg.value = LOGIN_FAIL_STATUS_REQUEST_FAIL
         println("Login failure:")
         e.printStackTrace()
     }
 
     override fun onResponse(call: Call, response: Response) {
         if(!response.isSuccessful) {
+            activity.hasLoginFailedMsg.value = LOGIN_FAIL_STATUS_RESPONSE_FAIL
             println("Login request failed: ${response.code}")
             return
         }
@@ -81,9 +95,10 @@ private class LoginCallback(private val client: OkHttpClient, private val activi
         val isInPrivateOffice = response.request.url.toString() == "https://elschool.ru/users/privateoffice"
 
         // Notify activity about failed login so that error message could popup
-        activity.hasLoginFailed.value = !isInPrivateOffice
+        activity.hasLoginFailedMsg.value = LOGIN_STATUS_WAIT
 
         if(!isInPrivateOffice) {
+            activity.hasLoginFailedMsg.value = LOGIN_FAIL_STATUS_INCORRECT_LOGIN_OR_PASSWORD
             println("Couldn't login! Probably incorrect login and/or password")
             return
         }
@@ -101,7 +116,7 @@ private class LoginCallback(private val client: OkHttpClient, private val activi
         val gradeUrl = GetGradeUrl().getUrl(
             diariesResp.request.url.toString(),
             Jsoup.parse(diariesResp.body?.string() ?: ""),
-            "10А" )
+            grade)
 
 
         //Get startWeekIndex
@@ -133,6 +148,7 @@ private class LoginCallback(private val client: OkHttpClient, private val activi
 
             if(fullPageWeekIndex == -1) {
                 println("FullPageWeekIndex has not been found (GetFullPage.getFullWeek() returned null)")
+                activity.hasLoginFailedMsg.value = LOGIN_FAIL_STATUS_EMPTY_SCHEDULE
                 return
             }
 
@@ -164,7 +180,9 @@ private class LoginCallback(private val client: OkHttpClient, private val activi
             .getSchedule()
 
         activity.schedule = schedule
+        activity.onScheduleUpdate()
         println("Successfully imported schedule")
+        activity.hasLoginFailedMsg.value = LOGIN_SUCCESS_STATUS
 
         val cookieJar = (client.cookieJar as PersistentCookieJar)
         cookieJar.clear()

@@ -4,15 +4,12 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,6 +28,8 @@ import androidx.compose.ui.unit.em
 import com.paochapro.test004.MainActivity
 import com.paochapro.test004.R
 import com.paochapro.test004.ui.theme.Test004Theme
+import com.paochapro.test004.LOGIN_STATUS_NONE
+import com.paochapro.test004.LOGIN_STATUS_WAIT
 
 enum class Screen {
     MainScreen,
@@ -95,7 +94,11 @@ fun Root(activity: MainActivity) {
                     DevScreen(activity)
                 }
                 Screen.ImportWebsiteScreen -> {
-                    GoBack { screen.value = Screen.MainScreen; activity.hasLoginFailed.value = false }
+                    GoBack {
+                        screen.value = Screen.MainScreen
+                        if(activity.hasLoginFailedMsg.value != LOGIN_STATUS_WAIT)
+                            activity.hasLoginFailedMsg.value = LOGIN_STATUS_NONE
+                    }
 
                     ImportWebsiteScreen(activity)
                 }

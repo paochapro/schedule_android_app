@@ -33,7 +33,7 @@ const val SCHEDULE_FILE_NAME = "test2.json"
 
 class MainActivity : ComponentActivity() {
     var timeString = mutableStateOf<String?>(null)
-    var hasLoginFailed = mutableStateOf(false)
+    var hasLoginFailedMsg = mutableStateOf("")
     var schedule: Schedule = Schedule(createEmptyWeek(), createEmptyWeek())
 
     private var havePermissionToUseAlarmManager: Boolean = false
