@@ -236,7 +236,7 @@ private fun LessonGrid(
         itemCount = (LESSON_COUNT + 1) * 4, //header and lessons for each column
         columnWeights = weights,
         rowModifier = rowModifier,
-        modifier = Modifier.padding(vertical = 4.dp)
+        modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
     ) {
         val column = it % 4
         val row = floor(it.toFloat() / 4f).toInt()
@@ -454,6 +454,7 @@ private fun isSomeRowIsPartiallyFilled(rowDataArray: List<List<String>>) : Boole
     return false
 }
 
+//TODO: Fix this function calling onScheduleUpdate two times
 private fun getButtonSaveForFirstWeek(
     firstWeek: Array<Day>,
     nextWeek: Array<Day>,

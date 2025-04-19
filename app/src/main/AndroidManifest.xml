@@ -29,7 +29,7 @@
                 android:resource="@xml/paochapro_widget_info" />
         </receiver>
 
-        <receiver android:name=".TestReceiver">
+        <receiver android:name=".WidgetUpdateCycle">
 
         </receiver>
 

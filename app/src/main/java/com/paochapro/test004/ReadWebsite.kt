@@ -296,7 +296,7 @@ private class GetSchedule(
                     Lesson(
                         subject = resultSubject,
                         startTime = time,
-                        cabinet = 0,
+                        cabinet = -1,
                     )
                 )
             }

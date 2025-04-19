@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.RemoteViews
+import androidx.compose.runtime.remember
 import com.paochapro.test004.schedule.readSchedule
 
 /**
@@ -17,13 +18,13 @@ import com.paochapro.test004.schedule.readSchedule
  */
 class PaochaproWidget : AppWidgetProvider() {
     companion object {
-        fun updateAll(context: Context) {
+        fun updateAll(context: Context, reasonMessage: String) {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager
                 .getAppWidgetIds(ComponentName(context, PaochaproWidget::class.java))
 
             for(id in ids) {
-                updateWidgetContents(context, manager, id)
+                updateWidgetContents(context, manager, id, reasonMessage)
             }
         }
     }
@@ -32,7 +33,7 @@ class PaochaproWidget : AppWidgetProvider() {
         if(intent != null && context != null)
             if (intent.action == null) {
                 println("Update all")
-                updateAll(context)
+                updateAll(context, "general update")
             }
 
         super.onReceive(context, intent)
@@ -43,7 +44,7 @@ class PaochaproWidget : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        updateAll(context)
+        updateAll(context, "Widget onUpdate function")
     }
 
     override fun onAppWidgetOptionsChanged(
@@ -61,7 +62,7 @@ class PaochaproWidget : AppWidgetProvider() {
         val width = newOptions.getInt(OPTION_APPWIDGET_MIN_WIDTH)
         val layout = getWidgetLayout(width, height)
 
-        updateWidgetContents(context, appWidgetManager, appWidgetId)
+        updateWidgetContents(context, appWidgetManager, appWidgetId, "widget size is changed")
     }
 }
 
@@ -69,9 +70,10 @@ class PaochaproWidget : AppWidgetProvider() {
 internal fun updateWidgetContents(
     context: Context,
     appWidgetManager: AppWidgetManager,
-    appWidgetId: Int
+    appWidgetId: Int,
+    reasonMessage: String
 ) {
-    //println("Update widget contents")
+    println("Updating widget contents. Reason: $reasonMessage")
 
     val schedule = readSchedule(context, SCHEDULE_FILE_NAME, shouldPrint = false)
     val currentLesson = getCurrentLessonFromSchedule(schedule)

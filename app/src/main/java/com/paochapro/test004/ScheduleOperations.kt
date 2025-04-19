@@ -1,10 +1,24 @@
 package com.paochapro.test004
 
+import com.paochapro.test004.composables.DayName
+import java.math.BigInteger
+import java.nio.channels.CancelledKeyException
 import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.Random
+import kotlin.math.max
+import kotlin.math.min
 
 //Helper functions
+fun getRandomLesson(schedule: Schedule) : Lesson? {
+    val lessons = schedule.weekEven
+        .plus(schedule.weekUneven)
+        .flatMap { it.lessons.toList() }
+        .filterNotNull()
+
+    return if(lessons.isEmpty()) null else lessons.random()
+}
+
 fun createEmptyWeek() = Array(DAY_COUNT) { Day(arrayOfNulls(LESSON_COUNT), DEFAULT_LESSON_TIME_MINS) }
 
 fun createRandomWeek(addEighthLesson: Boolean, addSunday: Boolean, addSaturday: Boolean = false) : Array<Day> {
@@ -52,7 +66,16 @@ fun createEmptySchedule() = Schedule(createEmptyWeek(), createEmptyWeek())
 fun createRandomSchedule(
     addEighthLesson: Boolean = false,
     addSunday: Boolean = false,
-    addSaturday: Boolean = false) : Schedule {
+    addSaturday: Boolean = false,
+    onlyEvenOrUneven: Boolean = false) : Schedule {
+
+    if(onlyEvenOrUneven) {
+        val week1 = createRandomWeek(addEighthLesson, addSunday, addSaturday)
+        val week2 = createEmptyWeek()
+
+        return if(Random().nextBoolean()) Schedule(week1, week2) else Schedule(week2, week1)
+    }
+
     return Schedule(
         createRandomWeek(addEighthLesson, addSunday, addSaturday),
         createRandomWeek(addEighthLesson, addSunday, addSaturday)
@@ -139,6 +162,120 @@ fun getCurrentLessonFromSchedule(schedule: Schedule) : Lesson? {
     }
 
     return result
+}
+
+fun getNextLessonFromSchedule(schedule: Schedule) : Lesson? {
+    val currentLesson = getCurrentLessonFromSchedule(schedule)
+
+    //Getting today
+    val time = GregorianCalendar()
+    val today = schedule.getCurrentDay(time) ?: return null
+
+    val todayWeek = schedule.getCurrentWeek(time)
+    val nextWeek = schedule.getNextWeek(time)
+
+    val allLessons = todayWeek.plus(nextWeek).flatMap { it.lessons.toList() }.filterNotNull()
+
+    if(allLessons.isEmpty()) return null
+    if(allLessons.size == 1) return allLessons.first()
+
+    val nextIndex = allLessons.indexOf(currentLesson) + 1
+
+    if(nextIndex in allLessons.indices) {
+        return allLessons[nextIndex]
+    }
+
+    //If current lesson is at end
+    return allLessons.first()
+}
+
+//Finding lesson millis
+//Used for alarm manager to update widgets
+fun getCurrentLessonEndSeconds(schedule: Schedule) : Int {
+    val currentLesson = getCurrentLessonFromSchedule(schedule) ?: return -1
+    val today = GregorianCalendar()
+    val length = schedule.getCurrentDay(today)?.lessonTimeMinutes ?: return -1
+
+    val calendar = getLessonEndCalendar(currentLesson, length)
+    val lessonHours = calendar.get(Calendar.HOUR)
+    val lessonMins = calendar.get(Calendar.MINUTE)
+    val todayHours = today.get(Calendar.HOUR)
+    val todayMins = today.get(Calendar.MINUTE)
+    val todaySeconds = today.get(Calendar.SECOND)
+
+    val hourDiff = lessonHours - todayHours
+    val minDiff = lessonMins - todayMins
+    val secondsDiff = 0 - todaySeconds
+
+    val seconds = hourDiff * 60 * 60 + minDiff * 60 + secondsDiff
+
+    println("Lesson end: ${getLessonEndString(currentLesson, length)}. Seconds diff: $seconds")
+
+    return seconds
+}
+
+fun getNextLessonTimeDiffSeconds(schedule: Schedule) : Int {
+    val currentLesson = getCurrentLessonFromSchedule(schedule) ?: return -1
+    val nextLesson = getNextLessonFromSchedule(schedule) ?: return -1
+//    println("Current: ${currentLesson.startTime}")
+//    println("Next: ${nextLesson.startTime}")
+
+    val current = findLessonDay(currentLesson, schedule) ?: return -1
+    val next = findLessonDay(nextLesson, schedule) ?: return -1
+
+    var time = 0
+
+    fun daysToSeconds(days: Int) : Int {
+        return days * 24 * 60 * 60
+    }
+
+    //If lessons are on different weeks, add a week time offset
+    val currentWeek = current.first
+    val nextWeek = next.first
+
+    if(currentWeek != nextWeek) {
+        time += daysToSeconds(7)
+    }
+
+    //Add day difference
+    val currentDay = current.second
+    val nextDay = next.second
+
+    time += daysToSeconds(nextDay.ordinal - currentDay.ordinal)
+
+    //Add hour and minute difference
+    val currentHourAndMins = utilStringToCalendar(currentLesson.startTime)
+    val nextHourAndMins = utilStringToCalendar(nextLesson.startTime)
+    val currentHour = currentHourAndMins.get(Calendar.HOUR_OF_DAY)
+    val nextHour = nextHourAndMins.get(Calendar.HOUR_OF_DAY)
+    val currentMins = currentHourAndMins.get(Calendar.MINUTE)
+    val nextMins =  nextHourAndMins.get(Calendar.MINUTE)
+
+    time += (nextHour - currentHour) * 60 * 60
+    time += (nextMins - currentMins) * 60
+
+    return time
+}
+
+fun findLessonDay(lesson: Lesson, schedule: Schedule) : Pair<Int, DayName>? {
+    var weekInt = 0
+
+    for (week in arrayOf(schedule.weekEven, schedule.weekUneven)) {
+        var dayInt = 0
+
+        for (day in week) {
+            //TODO: Lessons could be identical but be on different days
+            if (day.lessons.contains(lesson)) {
+                return weekInt to DayName.fromInt(dayInt)
+            }
+
+            dayInt += 1
+        }
+
+        weekInt += 1
+    }
+
+    return null
 }
 
 fun getLessonEnd(schedule: Schedule, lesson: Lesson) : String {

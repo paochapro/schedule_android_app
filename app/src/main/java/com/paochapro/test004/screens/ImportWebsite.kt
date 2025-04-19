@@ -2,6 +2,7 @@ package com.paochapro.test004.screens
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -22,12 +23,12 @@ fun ImportWebsiteScreen(activity: MainActivity)
     val password = remember { mutableStateOf(PASSWORD_OVERRIDE) }
 
     Row {
-        Text("Логин:")
+        Text("Логин:", color = MaterialTheme.colorScheme.onSurface)
         TextField(login.value, onValueChange = { login.value = it })
     }
 
     Row {
-        Text("Пароль:")
+        Text("Пароль:", color = MaterialTheme.colorScheme.onSurface)
         TextField(password.value, onValueChange = { password.value = it })
     }
 

@@ -5,14 +5,14 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
+import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
-import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.paochapro.test004.schedule.readSchedule
 import com.paochapro.test004.schedule.saveSchedule
 import com.paochapro.test004.screens.Root
 
@@ -40,37 +40,41 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        //schedule = readSchedule(this, SCHEDULE_FILE_NAME)
+        val barColor = ContextCompat.getColor(this, R.color.statusBar)
+        window.statusBarColor = barColor
+        window.navigationBarColor = barColor
 
-        //registerReceiver(LessonStatusUpdate(), IntentFilter(Intent.ACTION_TIME_TICK))
-        //updateWidgetsAndTimeString()
+        schedule = readSchedule(this, SCHEDULE_FILE_NAME, shouldPrint = false)
+        registerReceiver(LessonStatusUpdate(), IntentFilter(Intent.ACTION_TIME_TICK))
+        updateWidgetsAndTimeString("App start")
 
         try {
-            setAlarmManager()
+            startWidgetUpdateCycle()
         }
         catch (ex: Exception) {
-            println(ex.message)
+            println("Exception when trying to set an alarm manager: ${ex.message}")
         }
 
         setContent { Root(this) }
     }
 
-    @RequiresApi(Build.VERSION_CODES.S)
-    private fun setAlarmManager() {
-        val intent = Intent(this, TestReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-        val currentLesson = getCurrentLessonFromSchedule(schedule)
+    private fun startWidgetUpdateCycle() {
         val alarmManager = this.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
         try {
-            if(alarmManager.canScheduleExactAlarms()) {
-                println("Have permission")
+            var havePermission = false
 
-                alarmManager.setExact(
-                    AlarmManager.RTC_WAKEUP,
-                    System.currentTimeMillis() + 20000, //20 seconds from now
-                    pendingIntent
-                )
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms())
+                havePermission = true
+
+            if(Build.VERSION.SDK_INT < Build.VERSION_CODES.S)
+                havePermission = true
+
+            if(havePermission) {
+                println("Have permission. Starting Widget update cycle")
+                val intent = Intent(this, WidgetUpdateCycle::class.java)
+                intent.action = ACTION_UPDATE_WIDGET_CYCLE
+                this.sendBroadcast(intent)
             }
             else {
                 println("Dont have permission")
@@ -84,8 +88,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun updateWidgetsAndTimeString() {
-        PaochaproWidget.updateAll(this)
+    fun updateWidgetsAndTimeString(reasonMessage: String) {
+        PaochaproWidget.updateAll(this, reasonMessage)
 
         val widgetText = generateWidgetString(schedule)
 
@@ -96,8 +100,8 @@ class MainActivity : ComponentActivity() {
     //Working with schedule
     fun onScheduleUpdate() {
         saveSchedule(this, SCHEDULE_FILE_NAME, schedule, false)
-        updateWidgetsAndTimeString()
-        printSchedule(schedule)
+        updateWidgetsAndTimeString("Schedule update")
+    //printSchedule(schedule)
     }
 
     //Time settings
@@ -126,9 +130,46 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-class TestReceiver : BroadcastReceiver() {
+const val ACTION_UPDATE_WIDGET_CYCLE = "updateWidgetCycle"
+const val ACTION_CANCEL_PENDING_INTENT= "cancelPendingIntent"
+
+class WidgetUpdateCycle : BroadcastReceiver() {
+
     override fun onReceive(context: Context?, intent: Intent?) {
-        println("Test receiver")
+        if(intent?.action == ACTION_UPDATE_WIDGET_CYCLE)
+            updateCycle(context)
+
+        if(intent?.action == ACTION_CANCEL_PENDING_INTENT) {
+            println("Canceling pending intent")
+            val alarmManager = context?.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmManager.cancel(alarmManager.nextAlarmClock.showIntent)
+        }
+    }
+
+    private fun updateCycle(context: Context?) {
+        val alarmManager = context?.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        PaochaproWidget.updateAll(context, "Widget update cycle")
+
+        val intent = Intent(context, WidgetUpdateCycle::class.java)
+        intent.action = ACTION_UPDATE_WIDGET_CYCLE
+        val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+
+        val secondsDiff = getCurrentLessonEndSeconds(
+            readSchedule(
+                context,
+                SCHEDULE_FILE_NAME,
+                shouldPrint = false
+            )
+        )
+
+        alarmManager.setExact(
+            AlarmManager.RTC_WAKEUP,
+            System.currentTimeMillis() - (System.currentTimeMillis() % 1000) + secondsDiff * 1000,
+            pendingIntent
+        )
+
+        println("WidgetUpdateCycle called. Next call should be after $secondsDiff seconds")
     }
 }
 
@@ -145,6 +186,6 @@ class LessonStatusUpdate : BroadcastReceiver() {
             return
         }
 
-        context.updateWidgetsAndTimeString()
+        context.updateWidgetsAndTimeString("Action time tick")
     }
 }

@@ -14,7 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import com.paochapro.test004.Day
 import com.paochapro.test004.Lesson
 import com.paochapro.test004.MainActivity
@@ -25,8 +24,9 @@ import com.paochapro.test004.createEmptySchedule
 import com.paochapro.test004.createRandomSchedule
 import com.paochapro.test004.dayIndexToCalendarDay
 import com.paochapro.test004.getCurrentLesson
+import com.paochapro.test004.getCurrentLessonEndSeconds
 import com.paochapro.test004.getLessonEndString
-import com.paochapro.test004.readWebsiteAndStoreInSchedule
+import com.paochapro.test004.getNextLessonTimeDiffSeconds
 import com.paochapro.test004.utilCalendarToString
 import com.paochapro.test004.utilStringToCalendar
 import kotlinx.coroutines.delay
@@ -150,12 +150,14 @@ fun DevScreen(activity: MainActivity) {
     val addEigthLesson = remember { mutableStateOf(false) }
     val addSaturday = remember { mutableStateOf(false) }
     val addSunday = remember { mutableStateOf(false) }
+    val onlyEvenOrUneven = remember { mutableStateOf(false) }
 
     Button(onClick = {
         activity.schedule = createRandomSchedule(
             addEighthLesson = addEigthLesson.value,
             addSaturday = addSaturday.value,
             addSunday = addSunday.value,
+            onlyEvenOrUneven = onlyEvenOrUneven.value
         )
         activity.onScheduleUpdate()
     } )
@@ -175,4 +177,18 @@ fun DevScreen(activity: MainActivity) {
     TextCheckbox("Добавить 8ой урок", addEigthLesson.value, { x -> addEigthLesson.value = x } )
     TextCheckbox("Добавить субботу", addSaturday.value, { x -> addSaturday.value = x } )
     TextCheckbox("Добавить воскресенье", addSunday.value, { x -> addSunday.value = x } )
+    TextCheckbox("Только четная/нечетная неделя", onlyEvenOrUneven.value, { x -> onlyEvenOrUneven.value = x } )
+
+    Button(onClick = {
+        val end = getCurrentLessonEndSeconds(activity.schedule)
+
+        if(end > 0) {
+            //println("end: ${end}")
+        }
+        else {
+            println("end is null")
+        }
+    }) {
+        Text("Test print")
+    }
 }

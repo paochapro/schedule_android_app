@@ -13,7 +13,11 @@ class Lesson(val startTime: String, val subject: String, val cabinet: Int)
 class Day(val lessons: Array<Lesson?>, var lessonTimeMinutes: Int = DEFAULT_LESSON_TIME_MINS)
 
 class Schedule(val weekEven: Array<Day>, val weekUneven: Array<Day>) {
-    private fun getCurrentWeek(time: GregorianCalendar) : Array<Day> {
+    fun getNextWeek(time: GregorianCalendar) : Array<Day> {
+        return if(time.get(Calendar.WEEK_OF_YEAR) % 2 == 0) weekUneven else weekEven
+    }
+
+    fun getCurrentWeek(time: GregorianCalendar) : Array<Day> {
         return if(time.get(Calendar.WEEK_OF_YEAR) % 2 == 0) weekEven else weekUneven
     }
 
