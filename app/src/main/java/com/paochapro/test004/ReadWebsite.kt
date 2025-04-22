@@ -308,6 +308,18 @@ private class GetSchedule(
                     subject = subject.split(":")[0]
                 }
 
+                //Remap long subjects to short version
+                val remap = mapOf(
+                    "Алгебра и начала математического анализа" to "Алгебра",
+                    "Основы безопасности и защиты Родины" to "Обзр",
+                    "Иностранный язык (английский)" to "Английский",
+                    "Вероятность и статистика" to "Вероятность"
+                )
+
+                if(remap.containsKey(subject)) {
+                    subject = remap.getValue(subject)
+                }
+
                 //Leave only the first word
                 //For example "Алгебра и начала математического анализа"
                 //Could be shorten to just "Алгебра"
