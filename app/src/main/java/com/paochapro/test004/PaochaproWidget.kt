@@ -59,7 +59,6 @@ class PaochaproWidget : AppWidgetProvider() {
 
         val height = newOptions.getInt(OPTION_APPWIDGET_MIN_HEIGHT)
         val width = newOptions.getInt(OPTION_APPWIDGET_MIN_WIDTH)
-        val layout = getWidgetLayout(width, height)
 
         updateWidgetContents(context, appWidgetManager, appWidgetId, "widget size is changed")
     }
@@ -81,7 +80,11 @@ internal fun updateWidgetContents(
 
     // Construct the RemoteViews object
     val info = appWidgetManager.getAppWidgetOptions(appWidgetId)
-    val layout = getWidgetLayout(info.getInt(OPTION_APPWIDGET_MIN_WIDTH), info.getInt(OPTION_APPWIDGET_MIN_HEIGHT))
+    val layout = getWidgetLayout(
+        info.getInt(OPTION_APPWIDGET_MIN_WIDTH),
+        info.getInt(OPTION_APPWIDGET_MIN_HEIGHT),
+        currentLesson?.cabinet != -1,
+        currentLesson == null)
 
     val pendingIntent = PendingIntent.getBroadcast(
         context,
@@ -132,13 +135,31 @@ internal fun updateWidgetContents(
             views.setTextViewText(R.id.time_start_1x1, time_start)
             views.setTextViewText(R.id.time_end_1x1, time_end)
         }
+        R.layout.paochapro_widget_1x1_nocab -> {
+            var subject = WIDGET_TEXT_LESSON_WASNT_FOUND
+            var time_start = ""
+            var time_end = ""
+
+            if(currentLesson != null) {
+                subject = currentLesson.subject
+                time_start = timeStr.split('-')[0]
+                time_end = timeStr.split('-')[1]
+            }
+
+            views.setTextViewText(R.id.subject_1x1, subject)
+            views.setTextViewText(R.id.time_start_1x1, time_start)
+            views.setTextViewText(R.id.time_end_1x1, time_end)
+        }
     }
 
     // Instruct the widget manager to update the widget
     appWidgetManager.updateAppWidget(appWidgetId, views)
 }
 
-internal fun getWidgetLayout(width: Int, height: Int) : Int {
+internal fun getWidgetLayout(width: Int, height: Int, includeCabinet: Boolean, noLesson: Boolean) : Int {
+    if(noLesson)
+        return R.layout.paochapro_widget
+
     var layout = R.layout.paochapro_widget
 
     //I decided to not use 2x1, simple text wrap looks nicer
@@ -148,6 +169,10 @@ internal fun getWidgetLayout(width: Int, height: Int) : Int {
 
     if(width < (164 - 74 / 2)) {
         layout = R.layout.paochapro_widget_1x1
+
+        if(!includeCabinet) {
+            layout = R.layout.paochapro_widget_1x1_nocab
+        }
     }
 
     return layout
