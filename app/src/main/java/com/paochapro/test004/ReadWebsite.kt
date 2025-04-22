@@ -290,9 +290,16 @@ private class GetSchedule(
             val timeDiv = lessonElement.find { e -> e.nameIs("div") && e.className() == "diary__discipline__time" }
 
             if(textDiv != null && timeDiv != null) {
-                val time = timeDiv.text().split("-")[0].trim()
+                var time = timeDiv.text().split("-")[0].trim()
                 var subject = textDiv.text().split(".")[1].trim()
                 val num = textDiv.text().split(".")[0]
+
+                //Convert 08:00 to 8:00
+                val timeHours = time.split(":")[0]
+                val timeMinutes = time.split(":")[1]
+                if(timeHours.length == 2 && timeHours[0] == '0') {
+                    time = "${timeHours[1]}:$timeMinutes"
+                }
 
                 //Remove stuff after semicolon
                 //We don't need stuff like "Информатика: Практическая работа"
