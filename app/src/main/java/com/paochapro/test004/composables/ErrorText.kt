@@ -13,6 +13,6 @@ fun ErrorText(text: String) {
     Text(text = text,
         color = Color(0xFFF33737),
         modifier = Modifier.padding(horizontal = 8.dp),
-        fontSize = 2.em
+        fontSize = 3.em
     )
 }

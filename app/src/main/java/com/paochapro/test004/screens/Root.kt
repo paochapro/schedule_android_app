@@ -73,12 +73,12 @@ fun Root(activity: MainActivity) {
                         Button(modifier = Modifier.fillMaxWidth(), onClick = { screen.value =
                             Screen.ConfigureLesson
                         }) { Text("Изменить расписание") }
-                        Button(modifier = Modifier.fillMaxWidth(), onClick = { screen.value =
-                            Screen.DevScreen
-                        }) { Text("Тестирование") }
+//                        Button(modifier = Modifier.fillMaxWidth(), onClick = { screen.value =
+//                            Screen.DevScreen
+//                        }) { Text("Тестирование") }
                         Button(modifier = Modifier.fillMaxWidth(), onClick = { screen.value =
                             Screen.ImportWebsiteScreen
-                        }) { Text("Импорт") }
+                        }) { Text("Импорт из elschool.ru") }
                     }
                 }
                 Screen.ConfigureLesson -> {
@@ -90,7 +90,6 @@ fun Root(activity: MainActivity) {
                 }
                 Screen.DevScreen -> {
                     GoBack {screen.value = Screen.MainScreen }
-
                     DevScreen(activity)
                 }
                 Screen.ImportWebsiteScreen -> {

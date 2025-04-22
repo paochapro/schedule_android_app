@@ -68,7 +68,7 @@ fun ImportWebsiteScreen(activity: MainActivity) {
 
     //Wait
     if(activity.hasLoginFailedMsg.value == LOGIN_STATUS_WAIT) {
-        Text("Подождите...", color = MaterialTheme.colorScheme.onSurface)
+        MyText("Подождите...")
     }
 
     //Success
@@ -105,6 +105,8 @@ fun ImportWebsiteScreen(activity: MainActivity) {
             Text("Импортировать")
         }
     }
+
+    MyText("Класс заполнятеся так: 9Б, 10А")
 }
 
 @Composable
@@ -112,6 +114,15 @@ fun SuccessText(text: String) {
     Text(text = text,
         color = Color(0xFF4CAF50),
         modifier = Modifier.padding(horizontal = 8.dp),
-        fontSize = 2.em
+        fontSize = 3.em
+    )
+}
+
+@Composable
+fun MyText(text: String) {
+    Text(text = text,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.padding(horizontal = 8.dp),
+        fontSize = 3.em
     )
 }

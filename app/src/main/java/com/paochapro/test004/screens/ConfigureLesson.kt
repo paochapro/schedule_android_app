@@ -190,8 +190,11 @@ private fun BottomPanel(
         if (isSomeRowIsPartiallyFilled)
             ErrorText("Данные не заполнены.")
 
-        if (!correctDataFormat)
+        if (!correctDataFormat) {
             ErrorText("Неправильный формат данных.")
+            ErrorText("Время заполняется так: 7:00, 14:00")
+            ErrorText("Кабинет должен быть числом")
+        }
 
         Button(
             modifier = Modifier.fillMaxWidth(0.8f),
@@ -472,7 +475,7 @@ private fun getButtonSaveForFirstWeek(
                     && first.cabinet == next.cabinet
         }
 
-
+        
         return false
     }
 
