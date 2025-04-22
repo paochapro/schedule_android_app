@@ -25,11 +25,13 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
-import com.paochapro.test004.MainActivity
-import com.paochapro.test004.R
-import com.paochapro.test004.ui.theme.Test004Theme
 import com.paochapro.test004.LOGIN_STATUS_NONE
 import com.paochapro.test004.LOGIN_STATUS_WAIT
+import com.paochapro.test004.MainActivity
+import com.paochapro.test004.R
+import com.paochapro.test004.getCurrentLessonFromSchedule
+import com.paochapro.test004.getLessonEnd
+import com.paochapro.test004.ui.theme.Test004Theme
 
 enum class Screen {
     MainScreen,
@@ -109,26 +111,21 @@ fun Root(activity: MainActivity) {
 @Composable
 fun MainScreen(activity: MainActivity, modifier: Modifier) {
     //Creating strings that will show up in the center
-    val generatedString = activity.timeString.value
+    val currentLesson = getCurrentLessonFromSchedule(activity.schedule)
     val centerTexts = mutableListOf("Нет урока")
 
-    if(generatedString != null) {
-        val lessonStrings = generatedString.split(' ')
+    if(currentLesson != null) {
         centerTexts.clear()
 
-        if(lessonStrings.size == 3) {
-            val lesson = lessonStrings[0]
-            val cabinet = lessonStrings[1]
-            val time = lessonStrings[2]
+        val lesson = currentLesson.subject
+        val cabinet = currentLesson.cabinet
+        val time = "${currentLesson.startTime}-${getLessonEnd(activity.schedule, currentLesson)}"
 
+        if(cabinet != -1) {
             centerTexts.add("$lesson $cabinet")
             centerTexts.add(time)
         }
-
-        if(lessonStrings.size == 2) {
-            val lesson = lessonStrings[0]
-            val time = lessonStrings[1]
-
+        else  {
             centerTexts.add(lesson)
             centerTexts.add(time)
         }
