@@ -378,17 +378,19 @@ private class GetSchedule(
             }
         }
 
-        return week.map {
+        return week.mapIndexed { dIndex, day ->
             val resultLessons = arrayOfNulls<Lesson>(LESSON_COUNT)
 
-            for(i in it.indices) {
+            for(i in day.indices) {
                 if(i !in resultLessons.indices)
                     throw Exception("Website's days appear to have more than 8 lessons!")
 
-                resultLessons[i] = it[i]
+                resultLessons[i] = day[i]
             }
 
-            Day(resultLessons)
+            //Just making an assumption that monday has 35 mins lesson length
+            val lessonLength = if(dIndex == 0) MONDAY_LESSON_TIME_MINS else DEFAULT_LESSON_TIME_MINS
+            Day(resultLessons, lessonLength)
         }.toTypedArray()
     }
 }

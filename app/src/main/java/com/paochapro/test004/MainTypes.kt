@@ -6,6 +6,7 @@ import java.util.GregorianCalendar
 const val LESSON_COUNT = 8
 const val DAY_COUNT = 7
 const val DEFAULT_LESSON_TIME_MINS = 40
+const val MONDAY_LESSON_TIME_MINS = 35
 const val WIDGET_TEXT_LESSON_WASNT_FOUND = "-"
 
 class Lesson(val startTime: String, val subject: String, val cabinet: Int)
